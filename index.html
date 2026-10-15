@@ -34,6 +34,9 @@ button.stop{background:var(--sock);color:#fff}
 .acts{display:flex;gap:6px;align-items:center;flex-shrink:0}
 .adj{width:auto;margin:0;padding:8px 14px;background:transparent;color:var(--ink);border:1px solid var(--line)}
 .item>div:first-child{min-width:0}
+.min{color:#c8102e;font-weight:700;font-size:1.05rem}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .min{color:#ff6b6b}}
+:root[data-theme="dark"] .min{color:#ff6b6b}
 .sum{display:flex;justify-content:space-between;font-family:system-ui,sans-serif;padding:6px 0}
 .total{border-top:2px solid var(--ink);margin-top:6px;padding-top:8px;font-weight:700}
 .empty{color:var(--muted);padding:8px 0}
@@ -151,7 +154,7 @@ function render(){
   $("startstop").className=run?"stop":"";
   $("tow").disabled=run;
   const L=day();
-  $("list").innerHTML=L.length?L.map((e,i)=>`<div class="item"><div><b>${i+1}.</b>${e.time?" "+esc(e.time)+" ·":""} <b>${esc(e.glider)}</b> ${e.club?"<small>("+esc(e.club)+")</small>":""}<br><small>${esc(e.payer||"nincs név")} · ${e.minutes} perc${e.edited?" (javítva)":""}</small></div><div class="acts"><button class="adj" data-id="${e.id}" data-d="-1" aria-label="1 perccel kevesebb">−1</button><button class="adj" data-id="${e.id}" data-d="1" aria-label="1 perccel több">+1</button><button class="del" data-id="${e.id}" aria-label="Törlés">Töröl</button></div></div>`).join(""):'<div class="empty">Erre a napra még nincs vontatás.</div>';
+  $("list").innerHTML=L.length?L.map((e,i)=>`<div class="item"><div><b>${i+1}.</b>${e.time?" "+esc(e.time)+" ·":""} <b>${esc(e.glider)}</b> ${e.club?"<small>("+esc(e.club)+")</small>":""}<br><small>${esc(e.payer||"nincs név")} · <b class="min">${e.minutes} perc</b>${e.edited?" (javítva)":""}</small></div><div class="acts"><button class="adj" data-id="${e.id}" data-d="-1" aria-label="1 perccel kevesebb">−1</button><button class="adj" data-id="${e.id}" data-d="1" aria-label="1 perccel több">+1</button><button class="del" data-id="${e.id}" aria-label="Törlés">Töröl</button></div></div>`).join(""):'<div class="empty">Erre a napra még nincs vontatás.</div>';
   document.querySelectorAll(".del").forEach(b=>b.onclick=()=>{S.entries=S.entries.filter(e=>e.id!=b.dataset.id);save();render()});
   document.querySelectorAll(".adj").forEach(b=>b.onclick=()=>adjust(b.dataset.id,Number(b.dataset.d)));
   const g=groups(),ks=Object.keys(g);
