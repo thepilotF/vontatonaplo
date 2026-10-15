@@ -20,7 +20,7 @@ label{display:block;font:600 .85rem system-ui,sans-serif;color:var(--muted);marg
 input,select,textarea{width:100%;font:1rem system-ui,sans-serif;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:11px}
 textarea{min-height:90px}
 input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px solid var(--sock);outline-offset:1px}
-.row{display:flex;gap:10px}.row>*{flex:1}
+.row{display:flex;gap:10px}.row>*{flex:1}.row>div{min-width:0}
 button{font:600 1rem system-ui,sans-serif;border:0;border-radius:8px;padding:13px 16px;background:var(--accent);color:var(--on-accent);cursor:pointer;width:100%;margin-top:12px}
 button.alt{background:transparent;color:var(--ink);border:1px solid var(--line)}
 button.stop{background:var(--sock);color:#fff}
@@ -49,8 +49,8 @@ details summary{cursor:pointer;font-weight:700;margin-top:28px}
 <p class="sub" id="sub"></p>
 
 <div class="panel">
-  <label for="pilot">Vontatópilóta neve (a nap elején egyszer)</label><select id="pilot" aria-required="true"><option value="">Válassz…</option><option>Boskovitz Ábel</option><option>Fülöp Ádám</option><option>Laczkó Balázs</option><option>Szíj Bálint</option><option>Valastyán Máté</option><option>Veigli Szabolcs</option></select>
-  <label for="tow">Vontatógép</label><select id="tow"></select>
+  <div class="row"><div><label for="pilot">Vontatópilóta</label><select id="pilot" aria-required="true"><option value="">Válassz…</option><option>Boskovitz Ábel</option><option>Fülöp Ádám</option><option>Laczkó Balázs</option><option>Szíj Bálint</option><option>Valastyán Máté</option><option>Veigli Szabolcs</option></select></div>
+  <div><label for="tow">Vontatógép</label><select id="tow"></select></div></div>
   <div class="row">
     <div><label for="glider">Vontatott gép</label><input id="glider" placeholder="pl. HA-4321" autocapitalize="characters"></div>
     <div><label for="club">Klub</label><select id="club"><option>Malév</option><option>Opitz</option><option>Idegen</option><option>Nem tudom</option></select></div>
