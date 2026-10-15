@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vontatónapló</title>
+<style>
+:root{--bg:#f1efe4;--surface:#fffffb;--ink:#1c2a1e;--muted:#5b695d;--line:#d6d3c2;--accent:#2d6a3a;--on-accent:#fff;--sock:#e2561a;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121813;--surface:#1b241d;--ink:#e8ede6;--muted:#9aa89c;--line:#2e3a30;--accent:#6fc182;--on-accent:#0f1a12;--sock:#ff8a4d;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121813;--surface:#1b241d;--ink:#e8ede6;--muted:#9aa89c;--line:#2e3a30;--accent:#6fc182;--on-accent:#0f1a12;--sock:#ff8a4d;color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 Georgia,"Iowan Old Style","Times New Roman",serif}
+main{max-width:560px;margin:0 auto;padding:16px 16px 48px}
+h1{font-size:1.7rem;margin:8px 0 2px;letter-spacing:-.01em}
+h2{font-size:1.15rem;margin:28px 0 8px}
+.sub{color:var(--muted);margin:0 0 16px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px}
+label{display:block;font:600 .85rem system-ui,sans-serif;color:var(--muted);margin:10px 0 4px}
+input,select,textarea{width:100%;font:1rem system-ui,sans-serif;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:11px}
+textarea{min-height:90px}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px solid var(--sock);outline-offset:1px}
+.row{display:flex;gap:10px}.row>*{flex:1}
+button{font:600 1rem system-ui,sans-serif;border:0;border-radius:8px;padding:13px 16px;background:var(--accent);color:var(--on-accent);cursor:pointer;width:100%;margin-top:12px}
+button.alt{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button.stop{background:var(--sock);color:#fff}
+.timer{font:700 2.4rem system-ui,sans-serif;font-variant-numeric:tabular-nums;text-align:center;margin:6px 0}
+.hint{color:var(--muted);font:.85rem system-ui,sans-serif;margin:6px 0 0}
+.item{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.item:last-child{border-bottom:0}
+.item b{font-family:system-ui,sans-serif}
+.item small{color:var(--muted);font-family:system-ui,sans-serif}
+.del{width:auto;margin:0;padding:6px 10px;background:transparent;color:var(--sock);border:1px solid var(--line)}
+.sum{display:flex;justify-content:space-between;font-family:system-ui,sans-serif;padding:6px 0}
+.total{border-top:2px solid var(--ink);margin-top:6px;padding-top:8px;font-weight:700}
+.empty{color:var(--muted);padding:8px 0}
+details summary{cursor:pointer;font-weight:700;margin-top:28px}
+</style>
+</head>
+<body>
+<main>
+<h1>Vontatónapló</h1>
+<p class="sub" id="sub"></p>
+
+<div class="panel">
+  <label for="pilot">Vontatópilóta neve (a nap elején egyszer)</label><select id="pilot" aria-required="true"><option value="">Válassz…</option><option>Boskovitz Ábel</option><option>Fülöp Ádám</option><option>Laczkó Balázs</option><option>Szíj Bálint</option><option>Valastyán Máté</option><option>Veigli Szabolcs</option></select>
+  <label for="tow">Vontatógép</label><select id="tow"></select>
+  <div class="row">
+    <div><label for="glider">Vontatott gép</label><input id="glider" placeholder="pl. HA-4321" autocapitalize="characters"></div>
+    <div><label for="club">Klub</label><select id="club"><option>Malév</option><option>Opitz</option><option>Idegen</option><option>Nem tudom</option></select></div>
+  </div>
+  <label for="payer">Költségviselő neve (a vontatmányban ülő)</label><input id="payer" aria-required="true" autocomplete="off">
+  <div class="timer" id="timer">00:00</div>
+  <button id="startstop">Vontatás indul</button>
+  <label for="min">…vagy perc kézzel</label>
+  <div class="row"><input id="min" type="number" inputmode="numeric" min="1" placeholder="perc"><button class="alt" id="addman" style="margin-top:0">Mentés</button></div>
+  <p class="hint" id="err" role="alert"></p>
+</div>
+
+<h2>Vontatások</h2>
+<label for="date" style="margin-top:0">Nap</label><input id="date" type="date">
+<div class="panel" id="list" style="margin-top:10px"></div>
+
+<h2>Összesítés</h2>
+<div class="panel" id="summary"></div>
+<button id="send">Összesítés küldése emailben</button>
+<p class="hint">Megnyílik az email alkalmazásod a kész szöveggel, neked csak a Küldés gombot kell megnyomnod.</p>
+<div id="mailbox" class="panel" hidden style="margin-top:10px"><label for="mailtext" style="margin-top:0">Ha nem nyílt meg az email, másold ki a szöveget</label><textarea id="mailtext" readonly></textarea><button class="alt" id="copy">Szöveg másolása</button></div>
+
+<details>
+<summary>Beállítások</summary>
+<div class="panel" style="margin-top:10px">
+  <label for="s-club">Klubnév</label><input id="s-club">
+  <label for="s-mail">Címzett email</label><input id="s-mail" type="email" inputmode="email">
+  <label for="s-fee">Indítási díj (Ft / vontatás)</label><input id="s-fee" type="number" inputmode="numeric" min="0">
+  <label for="s-tows">Vontatógépek: soronként „rendszám;Klub=Ft/perc,Klub=Ft/perc” (vagy csak „rendszám;Ft/perc”, ha minden klubnak ugyanannyi)</label><textarea id="s-tows"></textarea>
+  <button id="save">Beállítások mentése</button>
+</div>
+</details>
+</main>
+
+<script>
+const KEY="vontatonaplo-v1";
+const def={settings:{club:"",pilot:"",mail:"",fee:0,tows:"HA-FBL;Malév=2600,Opitz=2750\nOM-DJS;2800\nHA-TUS;0\nHA-SEP;0\nHA-MJC;0"},entries:[],pilots:{},timer:null};
+let S=def;
+try{const r=localStorage.getItem(KEY);if(r)S=Object.assign({},def,JSON.parse(r))}catch(e){}
+if(/^HA-FBL;0\nOM-DJS;0/.test(S.settings.tows)||/^HA-VON1/.test(S.settings.tows))S.settings.tows=def.settings.tows;
+S.pilots=S.pilots||{};
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const ft=n=>Math.round(n).toLocaleString("hu-HU")+" Ft";
+const today=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
+const tows=()=>S.settings.tows.split("\n").map(l=>l.split(";")).filter(a=>a[0].trim()).map(a=>{const rates={};let def=0;(a[1]||"").split(",").forEach(p=>{const kv=p.split("=");const v=Number(kv[kv.length-1].trim())||0;if(kv.length>1)rates[kv[0].trim()]=v;else if(p.trim())def=v});return{name:a[0].trim(),rates,def}});
+const rateFor=(t,club)=>t.rates[club]!==undefined?t.rates[club]:t.def;
+
+function fillTow(){const cur=$("tow").value;$("tow").innerHTML=tows().map(t=>`<option>${esc(t.name)}</option>`).join("");if(cur)$("tow").value=cur;if(S.timer)$("tow").value=S.timer.tow}
+function fillSettings(){const s=S.settings;$("s-club").value=s.club;$("s-mail").value=s.mail;$("s-fee").value=s.fee;$("s-tows").value=s.tows;$("sub").textContent=s.club||"Add meg a klubnevet a Beállításokban."}
+
+function check(date){
+  if($("date").value===date)S.pilots[date]=$("pilot").value.trim();
+  if(!(S.pilots[date]||"").trim())return "Add meg a vontatópilóta nevét.";
+  if(!$("glider").value.trim())return "Írd be a vontatott gép rendszámát.";
+  if(!$("payer").value.trim())return "Add meg a költségviselő nevét.";
+  return "";
+}
+function addEntry(minutes){
+  const date=S.timer?S.timer.date:$("date").value||today();
+  const msg=check(date);if(msg){$("err").textContent=msg;return false}
+  const glider=$("glider").value.trim().toUpperCase();
+  if(!minutes||minutes<1){$("err").textContent="A vontatás legalább 1 perc.";return false}
+  const t=tows().find(x=>x.name===$("tow").value)||{name:$("tow").value,rates:{},def:0};
+  const club=$("club").value;S.entries.push({id:Date.now(),date,tow:t.name,glider,club,payer:$("payer").value.trim(),pilot:S.pilots[date],minutes,price:Number(S.settings.fee)+minutes*rateFor(t,club)});
+  S.timer=null;save();$("err").textContent="";$("glider").value="";$("payer").value="";$("min").value="";render();return true;
+}
+function tick(){
+  if(!S.timer){$("timer").textContent="00:00";return}
+  const s=Math.floor((Date.now()-S.timer.start)/1000);
+  $("timer").textContent=String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
+}
+$("startstop").onclick=()=>{
+  if(!S.timer){const d=$("date").value||today();const msg=check(d);if(msg){$("err").textContent=msg;return}$("err").textContent="";S.timer={start:Date.now(),tow:$("tow").value,date:d,glider:$("glider").value.trim(),payer:$("payer").value.trim(),club:$("club").value};save();render();return}
+  const mins=Math.max(1,Math.round((Date.now()-S.timer.start)/60000));
+  if(!addEntry(mins))return;
+};
+$("addman").onclick=()=>addEntry(parseInt($("min").value,10));
+$("save").onclick=()=>{S.settings={club:$("s-club").value.trim(),mail:$("s-mail").value.trim(),fee:Number($("s-fee").value)||0,tows:$("s-tows").value};save();fillSettings();fillTow();render()};
+$("date").onchange=()=>{showPilot();render()};
+$("pilot").onchange=()=>{S.pilots[$("date").value]=$("pilot").value.trim();save()};
+function showPilot(){$("pilot").value=S.pilots[$("date").value]||""}
+
+function day(){return S.entries.filter(e=>e.date===$("date").value)}
+function groups(){
+  const g={};
+  day().forEach(e=>{const k=e.glider+(e.club?" ("+e.club+")":"")+" – "+(e.payer||"nincs név");g[k]=g[k]||{n:0,m:0,p:0};g[k].n++;g[k].m+=e.minutes;g[k].p+=e.price});
+  return g;
+}
+function render(){
+  const run=!!S.timer;
+  $("startstop").textContent=run?"Vontatás vége":"Vontatás indul";
+  $("startstop").className=run?"stop":"";
+  $("tow").disabled=run;
+  const L=day();
+  $("list").innerHTML=L.length?L.map(e=>`<div class="item"><div><b>${esc(e.glider)}</b> ${e.club?"<small>("+esc(e.club)+")</small>":""}<br><small>${esc(e.payer||"nincs név")} · ${esc(e.tow)} · ${e.minutes} perc · ${ft(e.price)}</small></div><button class="del" data-id="${e.id}" aria-label="Törlés">Töröl</button></div>`).join(""):'<div class="empty">Erre a napra még nincs vontatás.</div>';
+  document.querySelectorAll(".del").forEach(b=>b.onclick=()=>{S.entries=S.entries.filter(e=>e.id!=b.dataset.id);save();render()});
+  const g=groups(),ks=Object.keys(g);
+  let tn=0,tm=0,tp=0;
+  $("summary").innerHTML=ks.length?ks.map(k=>{const x=g[k];tn+=x.n;tm+=x.m;tp+=x.p;return `<div class="sum"><span>${esc(k)}<br><small class="hint">${x.n} vontatás</small></span><b>${x.m} perc</b></div>`}).join("")+`<div class="sum total"><span>Összesen (${tn} vontatás)</span><span>${tm} perc</span></div>`:'<div class="empty">Nincs mit összesíteni.</div>';
+  tick();
+}
+$("send").onclick=()=>{
+  const g=groups(),ks=Object.keys(g);
+  if(!ks.length){$("err").textContent="Nincs mit elküldeni erre a napra.";return}
+  const s=S.settings;let tn=0,tm=0,tp=0;const pilots=[...new Set(day().map(e=>e.pilot).filter(Boolean))].join(", ");
+  const lines=ks.map(k=>{const x=g[k];tn+=x.n;tm+=x.m;tp+=x.p;return `${k}: ${x.n} vontatás, ${x.m} perc`});
+  const body=`${s.club||"Klub"} – vontatási összesítő\nNap: ${$("date").value}\nVontatópilóta: ${pilots||"-"}\n\n${lines.join("\n")}\n\nÖsszesen: ${tn} vontatás, ${tm} perc`;
+  const url=`mailto:${encodeURIComponent(s.mail)}?subject=${encodeURIComponent((s.club||"Klub")+" vontatás "+$("date").value)}&body=${encodeURIComponent(body)}`;
+$("mailtext").value=body;$("mailbox").hidden=false;
+try{const a=document.createElement("a");a.href=url;a.target="_blank";a.rel="noopener";document.body.appendChild(a);a.click();a.remove()}catch(e){}
+};
+
+$("date").value=today();
+fillSettings();fillTow();showPilot();if(S.timer){$("glider").value=S.timer.glider||"";$("payer").value=S.timer.payer||"";if(S.timer.club)$("club").value=S.timer.club}
+render();
+$("copy").onclick=()=>{const t=$("mailtext");t.select();try{navigator.clipboard.writeText(t.value)}catch(e){try{document.execCommand("copy")}catch(e2){}}};
+setInterval(tick,1000);
+</script>
+</body>
+</html>
