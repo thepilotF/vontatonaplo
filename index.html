@@ -41,6 +41,9 @@ button.stop{background:#c8102e;color:#fff}
 details summary{cursor:pointer;font-weight:700;margin-top:28px}
 .once select{padding:8px 10px;font-size:.95rem}
 .once label{font-weight:500}
+@keyframes need{0%,100%{border-color:#c8102e;box-shadow:0 0 0 3px rgba(200,16,46,.45)}50%{border-color:rgba(200,16,46,.25);box-shadow:0 0 0 0 rgba(200,16,46,0)}}
+.tow-box .need{border-color:#c8102e;box-shadow:0 0 0 3px rgba(200,16,46,.45);animation:need 1s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.tow-box .need{animation:none}}
 .tow-box{background:var(--box);border:2px solid var(--accent);border-radius:12px;padding:2px 12px 14px;margin-top:16px}
 .tow-box label{color:var(--ink);font-size:.95rem;font-weight:700}
 .tow-box input,.tow-box select{font-size:1.2rem;padding:14px 12px;background:var(--surface);border:1px solid var(--accent)}
@@ -63,7 +66,7 @@ details summary{cursor:pointer;font-weight:700;margin-top:28px}
   <div><label for="tow">Vontatógép</label><select id="tow"></select></div></div>
   <div class="tow-box">
   <div class="row">
-    <div><label for="glider">Vontatott gép</label><input id="glider" placeholder="pl. HA-4321" autocapitalize="characters"></div>
+    <div><label for="glider">Vontatmány</label><input id="glider" placeholder="pl. HA-4321" autocapitalize="characters"></div>
     <div><label for="club">Klub</label><select id="club"><option>Malév</option><option>Opitz</option><option>Idegen</option><option>Nem tudom</option></select></div>
   </div>
   <label for="payer">Költségviselő neve</label><input id="payer" aria-required="true" autocomplete="off"></div>
@@ -147,10 +150,11 @@ function startLoop(){if(!looping&&S.timer&&!calm){looping=true;requestAnimationF
 function fillTow(){const cur=$("tow").value;$("tow").innerHTML=tows().map(t=>`<option>${esc(t.name)}</option>`).join("");if(cur)$("tow").value=cur;if(S.timer)$("tow").value=S.timer.tow}
 function fillSettings(){const s=S.settings;$("s-mail").value=s.mail;$("s-fee").value=s.fee;$("s-tows").value=s.tows}
 
+function markNeed(){["glider","payer"].forEach(id=>{const e=$(id);e.classList.toggle("need",!e.value.trim())})}
 function check(date){
   if($("date").value===date)S.pilots[date]=$("pilot").value.trim();
   if(!(S.pilots[date]||"").trim())return "Add meg a vontatópilóta nevét.";
-  if(!$("glider").value.trim())return "Írd be a vontatott gép rendszámát.";
+  if(!$("glider").value.trim())return "Írd be a vontatmány rendszámát.";
   if(!$("payer").value.trim())return "Add meg a költségviselő nevét.";
   return "";
 }
@@ -164,7 +168,7 @@ function addEntry(minutes){
   S.timer=null;save();$("err").textContent="";$("glider").value="";$("payer").value="";$("min").value="";render();return true;
 }
 function tick(){
-  drawClock();startLoop();
+  drawClock();startLoop();markNeed();
   if(!S.timer){$("timer").textContent="00:00";return}
   const s=Math.floor((Date.now()-S.timer.start)/1000);
   $("timer").textContent=String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
@@ -222,6 +226,8 @@ fillSettings();fillTow();showPilot();if(S.timer){$("glider").value=S.timer.glide
 render();
 $("copy").onclick=()=>{const t=$("mailtext");t.select();try{navigator.clipboard.writeText(t.value)}catch(e){try{document.execCommand("copy")}catch(e2){}}};
 setInterval(tick,1000);
+$("glider").oninput=markNeed;
+$("payer").oninput=markNeed;
 buildRing();
 window.addEventListener("resize",buildRing);
 if(window.ResizeObserver)new ResizeObserver(buildRing).observe($("clock"));
