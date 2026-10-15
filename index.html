@@ -23,7 +23,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .row{display:flex;gap:10px}.row>*{flex:1}.row>div{min-width:0}
 button{font:600 1rem system-ui,sans-serif;border:0;border-radius:8px;padding:13px 16px;background:var(--accent);color:var(--on-accent);cursor:pointer;width:100%;margin-top:12px}
 button.alt{background:transparent;color:var(--ink);border:1px solid var(--line)}
-button.stop{background:var(--sock);color:#fff}
+button.stop{background:#c8102e;color:#fff}
 .timer{font:700 2.4rem system-ui,sans-serif;font-variant-numeric:tabular-nums;text-align:center;margin:6px 0}
 .hint{color:var(--muted);font:.85rem system-ui,sans-serif;margin:6px 0 0}
 .item{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
@@ -54,7 +54,7 @@ details summary{cursor:pointer;font-weight:700;margin-top:28px}
 #prog{fill:none;stroke:var(--accent);stroke-width:3;stroke-linecap:butt}
 #tug{fill:var(--sock);stroke:var(--surface);stroke-width:1;paint-order:stroke}
 #glid{fill:var(--ink);stroke:var(--surface);stroke-width:1;paint-order:stroke}
-.runrow button{flex:0 0 42%;width:auto;margin:0;font-size:1.1rem;padding:10px}
+.runrow button{flex:0 0 42%;width:auto;margin:0;font-size:1.9rem;font-weight:800;letter-spacing:.04em;padding:10px}
 </style>
 </head>
 <body>
@@ -76,7 +76,7 @@ details summary{cursor:pointer;font-weight:700;margin-top:28px}
       <svg id="ring" aria-hidden="true"><path id="track"/><path id="prog"/><line id="rope" style="stroke:var(--ink)" stroke-width="1.4"/><g id="glid"><g transform="scale(.85)"><ellipse cx="-1" rx="10" ry="1.4"/><path d="M3 -1.2L2 -14L-.4 -14L-.8 -1.2ZM3 1.2L2 14L-.4 14L-.8 1.2ZM-9 -.8L-10 -4.2L-11.6 -4.2L-11 -.6ZM-9 .8L-10 4.2L-11.6 4.2L-11 .6Z"/></g></g><g id="tug"><g transform="scale(.95)"><ellipse cx="-.5" rx="8.5" ry="2.3"/><path d="M2.5 -2L1 -9.5L-3 -9.5L-2.5 -2ZM2.5 2L1 9.5L-3 9.5L-2.5 2ZM-6.5 -1.2L-8.5 -4.8L-10.8 -4.8L-9.8 -.8ZM-6.5 1.2L-8.5 4.8L-10.8 4.8L-9.8 .8Z"/><path d="M9.6 -3.2V3.2" style="stroke:var(--ink)" stroke-width="1.3"/></g></g></svg>
       <div class="timer" id="timer">00:00</div>
     </div>
-    <button id="startstop">Vontatás indul</button>
+    <button id="startstop">START</button>
   </div>
   <label for="min">…vagy perc kézzel</label>
   <div class="row"><input id="min" type="number" inputmode="numeric" min="1" placeholder="perc"><button class="alt" id="addman" style="margin-top:0">Mentés</button></div>
@@ -199,7 +199,7 @@ function adjust(id,d){
 }
 function render(){
   const run=!!S.timer;
-  $("startstop").textContent=run?"Vontatás vége":"Vontatás indul";
+  $("startstop").textContent=run?"STOP":"START";
   $("startstop").className=run?"stop":"";
   $("tow").disabled=run;
   const L=day();
