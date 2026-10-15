@@ -31,6 +31,9 @@ button.stop{background:var(--sock);color:#fff}
 .item b{font-family:system-ui,sans-serif}
 .item small{color:var(--muted);font-family:system-ui,sans-serif}
 .del{width:auto;margin:0;padding:6px 10px;background:transparent;color:var(--sock);border:1px solid var(--line)}
+.acts{display:flex;gap:6px;align-items:center;flex-shrink:0}
+.adj{width:auto;margin:0;padding:8px 14px;background:transparent;color:var(--ink);border:1px solid var(--line)}
+.item>div:first-child{min-width:0}
 .sum{display:flex;justify-content:space-between;font-family:system-ui,sans-serif;padding:6px 0}
 .total{border-top:2px solid var(--ink);margin-top:6px;padding-top:8px;font-weight:700}
 .empty{color:var(--muted);padding:8px 0}
@@ -110,7 +113,7 @@ function addEntry(minutes){
   const glider=$("glider").value.trim().toUpperCase();
   if(!minutes||minutes<1){$("err").textContent="A vontatás legalább 1 perc.";return false}
   const t=tows().find(x=>x.name===$("tow").value)||{name:$("tow").value,rates:{},def:0};
-  const club=$("club").value;S.entries.push({id:Date.now(),date,tow:t.name,glider,club,payer:$("payer").value.trim(),pilot:S.pilots[date],minutes,price:Number(S.settings.fee)+minutes*rateFor(t,club)});
+  const club=$("club").value;S.entries.push({id:Date.now(),date,tow:t.name,glider,club,payer:$("payer").value.trim(),pilot:S.pilots[date],rate:rateFor(t,club),minutes,price:Number(S.settings.fee)+minutes*rateFor(t,club)});
   S.timer=null;save();$("err").textContent="";$("glider").value="";$("payer").value="";$("min").value="";render();return true;
 }
 function tick(){
@@ -135,14 +138,21 @@ function groups(){
   day().forEach(e=>{const k=e.glider+(e.club?" ("+e.club+")":"")+" – "+(e.payer||"nincs név");g[k]=g[k]||{n:0,m:0,p:0};g[k].n++;g[k].m+=e.minutes;g[k].p+=e.price});
   return g;
 }
+function adjust(id,d){
+  const e=S.entries.find(x=>x.id==id);if(!e)return;
+  const m=e.minutes+d;if(m<1)return;
+  const r=e.rate!==undefined?e.rate:rateFor(tows().find(t=>t.name===e.tow)||{rates:{},def:0},e.club);
+  e.minutes=m;e.price+=d*r;e.edited=true;save();render();
+}
 function render(){
   const run=!!S.timer;
   $("startstop").textContent=run?"Vontatás vége":"Vontatás indul";
   $("startstop").className=run?"stop":"";
   $("tow").disabled=run;
   const L=day();
-  $("list").innerHTML=L.length?L.map(e=>`<div class="item"><div><b>${esc(e.glider)}</b> ${e.club?"<small>("+esc(e.club)+")</small>":""}<br><small>${esc(e.payer||"nincs név")} · ${esc(e.tow)} · ${e.minutes} perc · ${ft(e.price)}</small></div><button class="del" data-id="${e.id}" aria-label="Törlés">Töröl</button></div>`).join(""):'<div class="empty">Erre a napra még nincs vontatás.</div>';
+  $("list").innerHTML=L.length?L.map(e=>`<div class="item"><div><b>${esc(e.glider)}</b> ${e.club?"<small>("+esc(e.club)+")</small>":""}<br><small>${esc(e.payer||"nincs név")} · ${esc(e.tow)} · ${e.minutes} perc${e.edited?" (javítva)":""} · ${ft(e.price)}</small></div><div class="acts"><button class="adj" data-id="${e.id}" data-d="-1" aria-label="1 perccel kevesebb">−1</button><button class="adj" data-id="${e.id}" data-d="1" aria-label="1 perccel több">+1</button><button class="del" data-id="${e.id}" aria-label="Törlés">Töröl</button></div></div>`).join(""):'<div class="empty">Erre a napra még nincs vontatás.</div>';
   document.querySelectorAll(".del").forEach(b=>b.onclick=()=>{S.entries=S.entries.filter(e=>e.id!=b.dataset.id);save();render()});
+  document.querySelectorAll(".adj").forEach(b=>b.onclick=()=>adjust(b.dataset.id,Number(b.dataset.d)));
   const g=groups(),ks=Object.keys(g);
   let tn=0,tm=0,tp=0;
   $("summary").innerHTML=ks.length?ks.map(k=>{const x=g[k];tn+=x.n;tm+=x.m;tp+=x.p;return `<div class="sum"><span>${esc(k)}<br><small class="hint">${x.n} vontatás</small></span><b>${x.m} perc</b></div>`}).join("")+`<div class="sum total"><span>Összesen (${tn} vontatás)</span><span>${tm} perc</span></div>`:'<div class="empty">Nincs mit összesíteni.</div>';
