@@ -117,7 +117,6 @@ details summary{cursor:pointer;font-weight:700;margin-top:28px}
 <details>
 <summary>Beállítások</summary>
 <div class="panel" style="margin-top:10px">
-  <label for="s-mail">Címzett email</label><input id="s-mail" type="email" inputmode="email">
   <label for="s-fee">Indítási díj (Ft / vontatás)</label><input id="s-fee" type="number" inputmode="numeric" min="0">
   <label for="s-tows">Vontatógépek: soronként „rendszám;Klub=Ft/perc,Klub=Ft/perc” (vagy csak „rendszám;Ft/perc”, ha minden klubnak ugyanannyi)</label><textarea id="s-tows"></textarea>
   <button id="save">Beállítások mentése</button>
@@ -197,7 +196,8 @@ function loop(){drawClock();if(S.timer&&!calm)requestAnimationFrame(loop);else l
 function startLoop(){if(!looping&&S.timer&&!calm){looping=true;requestAnimationFrame(loop)}}
 
 function fillTow(){const cur=$("tow").value;$("tow").innerHTML=tows().map(t=>`<option>${esc(t.name)}</option>`).join("");if(cur)$("tow").value=cur;if(S.timer)$("tow").value=S.timer.tow}
-function fillSettings(){const s=S.settings;$("s-mail").value=s.mail;$("s-fee").value=s.fee;$("s-tows").value=s.tows}
+const MAIL="themiddleF@gmail.com";
+function fillSettings(){const s=S.settings;$("s-fee").value=s.fee;$("s-tows").value=s.tows}
 
 function markNeed(){["glider","club","payer"].forEach(id=>{const e=$(id);e.classList.toggle("need",!e.value.trim())});
   const m=$("err");
@@ -233,7 +233,7 @@ $("startstop").onclick=()=>{
   if(!addEntry(mins))return;beep(SND_STOP);
 };
 $("addman").onclick=()=>addEntry(parseInt($("min").value,10));
-$("save").onclick=()=>{S.settings={mail:$("s-mail").value.trim(),fee:Number($("s-fee").value)||0,tows:$("s-tows").value};save();fillSettings();fillTow();render()};
+$("save").onclick=()=>{S.settings={fee:Number($("s-fee").value)||0,tows:$("s-tows").value};save();fillSettings();fillTow();render()};
 $("date").onchange=()=>{showPilot();render()};
 $("pilot").onchange=()=>{S.pilots[$("date").value]=$("pilot").value.trim();save()};
 function showPilot(){$("pilot").value=S.pilots[$("date").value]||""}
@@ -270,7 +270,7 @@ $("send").onclick=()=>{
   const s=S.settings;let tn=0,tm=0,tp=0;const pilots=[...new Set(day().map(e=>e.pilot).filter(Boolean))].join(", ");const nl=day().map((e,i)=>e.note?`${i+1}. ${e.glider}: ${e.note}`:"").filter(Boolean);const notes=nl.length?"\n\nMegjegyzések:\n"+nl.join("\n"):"";
   const lines=ks.map(k=>{const x=g[k];tn+=x.n;tm+=x.m;tp+=x.p;return `${k}: ${x.n} vontatás, ${x.m} perc`});
   const body=`Tow Log – vontatási összesítő\nNap: ${$("date").value}\nVontatópilóta: ${pilots||"-"}\n\n${lines.join("\n")}\n\nÖsszesen: ${tn} vontatás, ${tm} perc${notes}`;
-  const url=`mailto:${encodeURIComponent(s.mail)}?subject=${encodeURIComponent("Tow Log vontatás "+$("date").value)}&body=${encodeURIComponent(body)}`;
+  const url=`mailto:${MAIL}?subject=${encodeURIComponent("Tow Log vontatás "+$("date").value)}&body=${encodeURIComponent(body)}`;
 $("mailtext").value=body;$("mailbox").hidden=false;
 try{const a=document.createElement("a");a.href=url;a.target="_blank";a.rel="noopener";document.body.appendChild(a);a.click();a.remove()}catch(e){}
 };
