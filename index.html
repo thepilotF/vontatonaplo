@@ -35,6 +35,7 @@ button.stop{background:#c8102e;color:#fff}
 .min{color:#c8102e;font-weight:700;font-size:1.05rem}
 .ck{width:.95em;height:.95em;vertical-align:-.12em;margin-right:.18em}
 .nw{white-space:nowrap}
+.no{color:var(--accent)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .min{color:#ff6b6b}}
 :root[data-theme="dark"] .min{color:#ff6b6b}
 .sum{display:flex;justify-content:space-between;font-family:system-ui,sans-serif;padding:6px 0}
@@ -206,7 +207,7 @@ function render(){
   $("startstop").className=run?"stop":"";
   $("tow").disabled=run;
   const L=day();
-  $("list").innerHTML=L.length?L.map((e,i)=>`<div class="item"><div><b>${i+1}.</b> <b>${esc(e.glider)}</b> ${e.club?'<small class="nw">('+esc(e.club)+')</small>':""}<br><small>${esc(e.payer||"nincs név")} · <b class="min">${e.minutes} perc</b>${e.time?' <span class="nw">('+CK+esc(e.time)+')</span>':""}${e.edited?" · javítva":""}</small></div><div class="acts"><button class="adj" data-id="${e.id}" data-d="-1" aria-label="1 perccel kevesebb">−1</button><button class="adj" data-id="${e.id}" data-d="1" aria-label="1 perccel több">+1</button><button class="del" data-id="${e.id}" aria-label="Törlés">Töröl</button></div></div>`).join(""):'<div class="empty">Erre a napra még nincs vontatás.</div>';
+  $("list").innerHTML=L.length?L.map((e,i)=>`<div class="item"><div><b class="no">${i+1}.</b> <b>${esc(e.glider)}</b> ${e.club?'<small class="nw">('+esc(e.club)+')</small>':""}<br><small>${esc(e.payer||"nincs név")} · <b class="min">${e.minutes} perc</b>${e.time?' <span class="nw">('+CK+esc(e.time)+')</span>':""}${e.edited?" · javítva":""}</small></div><div class="acts"><button class="adj" data-id="${e.id}" data-d="-1" aria-label="1 perccel kevesebb">−1</button><button class="adj" data-id="${e.id}" data-d="1" aria-label="1 perccel több">+1</button><button class="del" data-id="${e.id}" aria-label="Törlés">Töröl</button></div></div>`).join(""):'<div class="empty">Erre a napra még nincs vontatás.</div>';
   document.querySelectorAll(".del").forEach(b=>b.onclick=()=>{S.entries=S.entries.filter(e=>e.id!=b.dataset.id);save();render()});
   document.querySelectorAll(".adj").forEach(b=>b.onclick=()=>adjust(b.dataset.id,Number(b.dataset.d)));
   const g=groups(),ks=Object.keys(g);
