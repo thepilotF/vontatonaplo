@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend+Zetta:wght@200&display=swap">
 <title>Tow Log</title>
 <style>
 :root{--bg:#f1efe4;--surface:#fffffb;--ink:#1c2a1e;--muted:#5b695d;--line:#d6d3c2;--accent:#2d6a3a;--on-accent:#fff;--sock:#e2561a;--box:#e6f0e2;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -14,18 +17,8 @@ body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 Georgia,"Iowa
 main{max-width:560px;margin:0 auto;padding:16px 16px 48px}
 h1{font-size:1.7rem;margin:8px 0 2px;letter-spacing:-.01em}
 h2{font-size:1.15rem;margin:28px 0 8px}
-.sub{color:var(--muted);margin:0 0 16px;text-align:center}
-.hero{position:relative;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:96px;padding:6px 0 24px}
-.hero{margin-bottom:6px}
-.hero h1{margin:0;flex:1;text-align:center;font-size:2.1rem;letter-spacing:.02em;white-space:nowrap}
-@media (max-width:360px){.art-l{width:48px}.art-r{width:80px}.hero h1{font-size:1.8rem}}
-.hero svg{flex:none;height:auto;align-self:flex-start}
-.art-l{width:64px}
-.art-r{width:104px}
-.art-l .cl{fill:var(--line)}
-.art-r .tg{fill:var(--sock)}
-.art-r .gl{fill:var(--ink)}
-.art-r .rp{stroke:var(--ink);stroke-width:1}
+.hero{position:relative;padding:18px 0 28px;margin-bottom:6px}
+.hero h1{margin:0;text-align:center;font-family:"Lexend Zetta","Montserrat","Avenir Next","Helvetica Neue",system-ui,sans-serif;font-weight:200;font-size:clamp(1.6rem,10.5vw,3.2rem);letter-spacing:.04em;line-height:1.1;white-space:nowrap}
 .by{position:absolute;right:0;bottom:0;font:italic .78rem Georgia,serif;color:var(--muted)}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px}
 label{display:block;font:600 .85rem system-ui,sans-serif;color:var(--muted);margin:10px 0 4px}
@@ -72,12 +65,9 @@ details summary{cursor:pointer;font-weight:700;margin-top:28px}
 <body>
 <main>
 <header class="hero">
-  <svg class="art-l" viewBox="0 0 64 40" aria-hidden="true"><g class="cl"><circle cx="16" cy="24" r="9"/><circle cx="30" cy="17" r="12"/><circle cx="45" cy="22" r="10"/><rect x="10" y="24" width="45" height="9" rx="4.5"/></g></svg>
   <h1>Tow Log</h1>
-  <svg class="art-r" viewBox="0 0 110 44" aria-hidden="true"><g transform="translate(0 22) rotate(-8 55 0)"><line class="rp" x1="39.5" y1="0" x2="81" y2="0"/><g class="gl" transform="translate(28 0) scale(1.15)"><ellipse cx="-1" rx="10" ry="1.4"/><path d="M3 -1.2L2 -14L-.4 -14L-.8 -1.2ZM3 1.2L2 14L-.4 14L-.8 1.2ZM-9 -.8L-10 -4.2L-11.6 -4.2L-11 -.6ZM-9 .8L-10 4.2L-11.6 4.2L-11 .6Z"/></g><g class="tg" transform="translate(92 0) scale(1.25)"><ellipse cx="-.5" rx="8.5" ry="2.3"/><path d="M2.5 -2L1 -9.5L-3 -9.5L-2.5 -2ZM2.5 2L1 9.5L-3 9.5L-2.5 2ZM-6.5 -1.2L-8.5 -4.8L-10.8 -4.8L-9.8 -.8ZM-6.5 1.2L-8.5 4.8L-10.8 4.8L-9.8 .8Z"/></g></g></svg>
   <span class="by">by Fülöp Ádám</span>
 </header>
-<p class="sub" id="sub"></p>
 
 <div class="panel">
   <div class="row once"><div><label for="pilot">Vontatópilóta</label><select id="pilot" aria-required="true"><option value="">Válassz…</option><option>Boskovitz Ábel</option><option>Fülöp Ádám</option><option>Laczkó Balázs</option><option>Szíj Bálint</option><option>Valastyán Máté</option><option>Veigli Szabolcs</option></select></div>
@@ -113,7 +103,6 @@ details summary{cursor:pointer;font-weight:700;margin-top:28px}
 <details>
 <summary>Beállítások</summary>
 <div class="panel" style="margin-top:10px">
-  <label for="s-club">Klubnév</label><input id="s-club">
   <label for="s-mail">Címzett email</label><input id="s-mail" type="email" inputmode="email">
   <label for="s-fee">Indítási díj (Ft / vontatás)</label><input id="s-fee" type="number" inputmode="numeric" min="0">
   <label for="s-tows">Vontatógépek: soronként „rendszám;Klub=Ft/perc,Klub=Ft/perc” (vagy csak „rendszám;Ft/perc”, ha minden klubnak ugyanannyi)</label><textarea id="s-tows"></textarea>
@@ -147,6 +136,11 @@ function buildRing(){
   $("track").setAttribute("d",d);$("prog").setAttribute("d",d);
   ringL=$("track").getTotalLength();drawClock();
 }
+function fitTitle(){
+  const h=document.querySelector(".hero h1");h.style.fontSize="";
+  let fs=parseFloat(getComputedStyle(h).fontSize);
+  while(h.scrollWidth>h.clientWidth&&fs>16){fs-=1;h.style.fontSize=fs+"px"}
+}
 function pt(l){
   l=((l%ringL)+ringL)%ringL;const p=$("track"),a=p.getPointAtLength(l),b=p.getPointAtLength((l+2)%ringL);
   return{x:a.x,y:a.y,r:Math.atan2(b.y-a.y,b.x-a.x)*180/Math.PI};
@@ -167,7 +161,7 @@ function loop(){drawClock();if(S.timer&&!calm)requestAnimationFrame(loop);else l
 function startLoop(){if(!looping&&S.timer&&!calm){looping=true;requestAnimationFrame(loop)}}
 
 function fillTow(){const cur=$("tow").value;$("tow").innerHTML=tows().map(t=>`<option>${esc(t.name)}</option>`).join("");if(cur)$("tow").value=cur;if(S.timer)$("tow").value=S.timer.tow}
-function fillSettings(){const s=S.settings;$("s-club").value=s.club;$("s-mail").value=s.mail;$("s-fee").value=s.fee;$("s-tows").value=s.tows;$("sub").textContent=s.club||"Add meg a klubnevet a Beállításokban."}
+function fillSettings(){const s=S.settings;$("s-mail").value=s.mail;$("s-fee").value=s.fee;$("s-tows").value=s.tows}
 
 function check(date){
   if($("date").value===date)S.pilots[date]=$("pilot").value.trim();
@@ -197,7 +191,7 @@ $("startstop").onclick=()=>{
   if(!addEntry(mins))return;
 };
 $("addman").onclick=()=>addEntry(parseInt($("min").value,10));
-$("save").onclick=()=>{S.settings={club:$("s-club").value.trim(),mail:$("s-mail").value.trim(),fee:Number($("s-fee").value)||0,tows:$("s-tows").value};save();fillSettings();fillTow();render()};
+$("save").onclick=()=>{S.settings={mail:$("s-mail").value.trim(),fee:Number($("s-fee").value)||0,tows:$("s-tows").value};save();fillSettings();fillTow();render()};
 $("date").onchange=()=>{showPilot();render()};
 $("pilot").onchange=()=>{S.pilots[$("date").value]=$("pilot").value.trim();save()};
 function showPilot(){$("pilot").value=S.pilots[$("date").value]||""}
@@ -233,8 +227,8 @@ $("send").onclick=()=>{
   if(!ks.length){$("err").textContent="Nincs mit elküldeni erre a napra.";return}
   const s=S.settings;let tn=0,tm=0,tp=0;const pilots=[...new Set(day().map(e=>e.pilot).filter(Boolean))].join(", ");
   const lines=ks.map(k=>{const x=g[k];tn+=x.n;tm+=x.m;tp+=x.p;return `${k}: ${x.n} vontatás, ${x.m} perc`});
-  const body=`${s.club||"Klub"} – vontatási összesítő\nNap: ${$("date").value}\nVontatópilóta: ${pilots||"-"}\n\n${lines.join("\n")}\n\nÖsszesen: ${tn} vontatás, ${tm} perc`;
-  const url=`mailto:${encodeURIComponent(s.mail)}?subject=${encodeURIComponent((s.club||"Klub")+" vontatás "+$("date").value)}&body=${encodeURIComponent(body)}`;
+  const body=`Tow Log – vontatási összesítő\nNap: ${$("date").value}\nVontatópilóta: ${pilots||"-"}\n\n${lines.join("\n")}\n\nÖsszesen: ${tn} vontatás, ${tm} perc`;
+  const url=`mailto:${encodeURIComponent(s.mail)}?subject=${encodeURIComponent("Tow Log vontatás "+$("date").value)}&body=${encodeURIComponent(body)}`;
 $("mailtext").value=body;$("mailbox").hidden=false;
 try{const a=document.createElement("a");a.href=url;a.target="_blank";a.rel="noopener";document.body.appendChild(a);a.click();a.remove()}catch(e){}
 };
@@ -244,6 +238,9 @@ fillSettings();fillTow();showPilot();if(S.timer){$("glider").value=S.timer.glide
 render();
 $("copy").onclick=()=>{const t=$("mailtext");t.select();try{navigator.clipboard.writeText(t.value)}catch(e){try{document.execCommand("copy")}catch(e2){}}};
 setInterval(tick,1000);
+fitTitle();
+window.addEventListener("resize",fitTitle);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fitTitle);
 buildRing();
 window.addEventListener("resize",buildRing);
 if(window.ResizeObserver)new ResizeObserver(buildRing).observe($("clock"));
