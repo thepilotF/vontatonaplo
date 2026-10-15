@@ -39,6 +39,12 @@ button.stop{background:#c8102e;color:#fff}
 .row.split>div:first-child{flex:2}
 .row.split>div:last-child{flex:1}
 .nt{font-style:italic}
+#err:empty{display:none}
+@keyframes blinkt{0%,100%{opacity:1}50%{opacity:.1}}
+#err.blink{color:#c8102e;font:700 1.3rem system-ui,sans-serif;text-align:center;margin:10px 0 0;animation:blinkt 1s ease-in-out infinite}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #err.blink{color:#ff6b6b}}
+:root[data-theme="dark"] #err.blink{color:#ff6b6b}
+@media (prefers-reduced-motion:reduce){#err.blink{animation:none}}
 .manual{display:flex;gap:8px;align-items:stretch}
 .stepbox{flex:1.7;min-width:0;display:flex;align-items:stretch;background:var(--bg);border:1px solid var(--line);border-radius:8px;overflow:hidden}
 .stepbox:focus-within{outline:3px solid var(--sock);outline-offset:1px}
@@ -91,9 +97,9 @@ details summary{cursor:pointer;font-weight:700;margin-top:28px}
     </div>
     <button id="startstop">START</button>
   </div>
+  <p class="hint" id="err" role="alert"></p>
   <label for="min">…vagy perc kézzel</label>
   <div class="manual"><div class="stepbox"><input id="min" type="number" inputmode="numeric" min="1" placeholder="perc"><button class="stp" id="minus" aria-label="1 perccel kevesebb">−</button><button class="stp" id="plus" aria-label="1 perccel több">+</button></div><button class="alt" id="addman">Mentés</button></div>
-  <p class="hint" id="err" role="alert"></p>
 </div>
 
 <h2>Vontatások</h2>
@@ -153,7 +159,7 @@ function warn(){
   try{
     if(window.speechSynthesis&&window.SpeechSynthesisUtterance){
       speechSynthesis.cancel();
-      const u=new SpeechSynthesisUtterance("Enter data first");
+      const u=new SpeechSynthesisUtterance("Enter data");
       u.lang="en-US";u.rate=.95;u.volume=1;
       speechSynthesis.speak(u);
     }else beep([[330,.15],[330,.15]]);
@@ -191,18 +197,22 @@ function startLoop(){if(!looping&&S.timer&&!calm){looping=true;requestAnimationF
 function fillTow(){const cur=$("tow").value;$("tow").innerHTML=tows().map(t=>`<option>${esc(t.name)}</option>`).join("");if(cur)$("tow").value=cur;if(S.timer)$("tow").value=S.timer.tow}
 function fillSettings(){const s=S.settings;$("s-mail").value=s.mail;$("s-fee").value=s.fee;$("s-tows").value=s.tows}
 
-function markNeed(){["glider","club","payer"].forEach(id=>{const e=$(id);e.classList.toggle("need",!e.value.trim())})}
+function markNeed(){["glider","club","payer"].forEach(id=>{const e=$(id);e.classList.toggle("need",!e.value.trim())});
+  const m=$("err");
+  if(m.textContent==="Enter data"&&!check($("date").value||today()))m.textContent="";
+  m.classList.toggle("blink",m.textContent==="Enter data");
+}
 function check(date){
   if($("date").value===date)S.pilots[date]=$("pilot").value.trim();
-  if(!(S.pilots[date]||"").trim())return "Add meg a vontatópilóta nevét.";
-  if(!$("glider").value.trim())return "Írd be a vontatmány rendszámát.";
-  if(!$("club").value)return "Válaszd ki a klubot.";
-  if(!$("payer").value.trim())return "Add meg a költségviselő nevét.";
+  if(!(S.pilots[date]||"").trim())return "Enter data";
+  if(!$("glider").value.trim())return "Enter data";
+  if(!$("club").value)return "Enter data";
+  if(!$("payer").value.trim())return "Enter data";
   return "";
 }
 function addEntry(minutes){
   const date=S.timer?S.timer.date:$("date").value||today();
-  const msg=check(date);if(msg){$("err").textContent=msg;return false}
+  const msg=check(date);if(msg){$("err").textContent=msg;markNeed();return false}
   const glider=$("glider").value.trim().toUpperCase();
   if(!minutes||minutes<1){$("err").textContent="A vontatás legalább 1 perc.";return false}
   const t=tows().find(x=>x.name===$("tow").value)||{name:$("tow").value,rates:{},def:0};
@@ -216,7 +226,7 @@ function tick(){
   $("timer").textContent=String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
 }
 $("startstop").onclick=()=>{
-  if(!S.timer){const d=$("date").value||today();const msg=check(d);if(msg){$("err").textContent=msg;warn();return}$("err").textContent="";S.timer={start:Date.now(),tow:$("tow").value,date:d,glider:$("glider").value.trim(),payer:$("payer").value.trim(),note:$("note").value.trim(),club:$("club").value};save();render();beep(SND_START);return}
+  if(!S.timer){const d=$("date").value||today();const msg=check(d);if(msg){$("err").textContent=msg;warn();markNeed();return}$("err").textContent="";S.timer={start:Date.now(),tow:$("tow").value,date:d,glider:$("glider").value.trim(),payer:$("payer").value.trim(),note:$("note").value.trim(),club:$("club").value};save();render();beep(SND_START);return}
   const mins=Math.max(1,Math.round((Date.now()-S.timer.start)/60000));
   if(!addEntry(mins))return;beep(SND_STOP);
 };
