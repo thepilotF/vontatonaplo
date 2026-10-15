@@ -93,6 +93,7 @@ const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const ft=n=>Math.round(n).toLocaleString("hu-HU")+" Ft";
+const hm=ts=>{const d=new Date(ts);return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")};
 const today=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
 const tows=()=>S.settings.tows.split("\n").map(l=>l.split(";")).filter(a=>a[0].trim()).map(a=>{const rates={};let def=0;(a[1]||"").split(",").forEach(p=>{const kv=p.split("=");const v=Number(kv[kv.length-1].trim())||0;if(kv.length>1)rates[kv[0].trim()]=v;else if(p.trim())def=v});return{name:a[0].trim(),rates,def}});
 const rateFor=(t,club)=>t.rates[club]!==undefined?t.rates[club]:t.def;
@@ -113,7 +114,7 @@ function addEntry(minutes){
   const glider=$("glider").value.trim().toUpperCase();
   if(!minutes||minutes<1){$("err").textContent="A vontatás legalább 1 perc.";return false}
   const t=tows().find(x=>x.name===$("tow").value)||{name:$("tow").value,rates:{},def:0};
-  const club=$("club").value;S.entries.push({id:Date.now(),date,tow:t.name,glider,club,payer:$("payer").value.trim(),pilot:S.pilots[date],rate:rateFor(t,club),minutes,price:Number(S.settings.fee)+minutes*rateFor(t,club)});
+  const club=$("club").value;S.entries.push({id:Date.now(),date,time:hm(S.timer?S.timer.start:Date.now()),tow:t.name,glider,club,payer:$("payer").value.trim(),pilot:S.pilots[date],rate:rateFor(t,club),minutes,price:Number(S.settings.fee)+minutes*rateFor(t,club)});
   S.timer=null;save();$("err").textContent="";$("glider").value="";$("payer").value="";$("min").value="";render();return true;
 }
 function tick(){
@@ -150,7 +151,7 @@ function render(){
   $("startstop").className=run?"stop":"";
   $("tow").disabled=run;
   const L=day();
-  $("list").innerHTML=L.length?L.map(e=>`<div class="item"><div><b>${esc(e.glider)}</b> ${e.club?"<small>("+esc(e.club)+")</small>":""}<br><small>${esc(e.payer||"nincs név")} · ${esc(e.tow)} · ${e.minutes} perc${e.edited?" (javítva)":""} · ${ft(e.price)}</small></div><div class="acts"><button class="adj" data-id="${e.id}" data-d="-1" aria-label="1 perccel kevesebb">−1</button><button class="adj" data-id="${e.id}" data-d="1" aria-label="1 perccel több">+1</button><button class="del" data-id="${e.id}" aria-label="Törlés">Töröl</button></div></div>`).join(""):'<div class="empty">Erre a napra még nincs vontatás.</div>';
+  $("list").innerHTML=L.length?L.map((e,i)=>`<div class="item"><div><b>${i+1}.</b>${e.time?" "+esc(e.time)+" ·":""} <b>${esc(e.glider)}</b> ${e.club?"<small>("+esc(e.club)+")</small>":""}<br><small>${esc(e.payer||"nincs név")} · ${e.minutes} perc${e.edited?" (javítva)":""}</small></div><div class="acts"><button class="adj" data-id="${e.id}" data-d="-1" aria-label="1 perccel kevesebb">−1</button><button class="adj" data-id="${e.id}" data-d="1" aria-label="1 perccel több">+1</button><button class="del" data-id="${e.id}" aria-label="Törlés">Töröl</button></div></div>`).join(""):'<div class="empty">Erre a napra még nincs vontatás.</div>';
   document.querySelectorAll(".del").forEach(b=>b.onclick=()=>{S.entries=S.entries.filter(e=>e.id!=b.dataset.id);save();render()});
   document.querySelectorAll(".adj").forEach(b=>b.onclick=()=>adjust(b.dataset.id,Number(b.dataset.d)));
   const g=groups(),ks=Object.keys(g);
