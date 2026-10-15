@@ -133,6 +133,22 @@ const CK='<svg class="ck" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" 
 const today=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
 const tows=()=>S.settings.tows.split("\n").map(l=>l.split(";")).filter(a=>a[0].trim()).map(a=>{const rates={};let def=0;(a[1]||"").split(",").forEach(p=>{const kv=p.split("=");const v=Number(kv[kv.length-1].trim())||0;if(kv.length>1)rates[kv[0].trim()]=v;else if(p.trim())def=v});return{name:a[0].trim(),rates,def}});
 const rateFor=(t,club)=>t.rates[club]!==undefined?t.rates[club]:t.def;
+const SND_START=[[880,.1],[1175,.18]],SND_STOP=[[1175,.12],[784,.3]];
+let AC=null;
+function beep(seq){
+  try{
+    AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+    if(AC.state==="suspended")AC.resume();
+    let t=AC.currentTime+.02;
+    seq.forEach(([f,d])=>{
+      const o=AC.createOscillator(),g=AC.createGain();
+      o.type="triangle";o.frequency.value=f;
+      g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.7,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+d);
+      o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d+.02);
+      t+=d+.04;
+    });
+  }catch(e){}
+}
 let ringL=0,looping=false;
 const calm=!!(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches);
 function buildRing(){
@@ -190,9 +206,9 @@ function tick(){
   $("timer").textContent=String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
 }
 $("startstop").onclick=()=>{
-  if(!S.timer){const d=$("date").value||today();const msg=check(d);if(msg){$("err").textContent=msg;return}$("err").textContent="";S.timer={start:Date.now(),tow:$("tow").value,date:d,glider:$("glider").value.trim(),payer:$("payer").value.trim(),note:$("note").value.trim(),club:$("club").value};save();render();return}
+  if(!S.timer){const d=$("date").value||today();const msg=check(d);if(msg){$("err").textContent=msg;return}$("err").textContent="";S.timer={start:Date.now(),tow:$("tow").value,date:d,glider:$("glider").value.trim(),payer:$("payer").value.trim(),note:$("note").value.trim(),club:$("club").value};save();render();beep(SND_START);return}
   const mins=Math.max(1,Math.round((Date.now()-S.timer.start)/60000));
-  if(!addEntry(mins))return;
+  if(!addEntry(mins))return;beep(SND_STOP);
 };
 $("addman").onclick=()=>addEntry(parseInt($("min").value,10));
 $("save").onclick=()=>{S.settings={mail:$("s-mail").value.trim(),fee:Number($("s-fee").value)||0,tows:$("s-tows").value};save();fillSettings();fillTow();render()};
