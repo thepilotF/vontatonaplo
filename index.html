@@ -149,6 +149,16 @@ function beep(seq){
     });
   }catch(e){}
 }
+function warn(){
+  try{
+    if(window.speechSynthesis&&window.SpeechSynthesisUtterance){
+      speechSynthesis.cancel();
+      const u=new SpeechSynthesisUtterance("Enter data first");
+      u.lang="en-US";u.rate=.95;u.volume=1;
+      speechSynthesis.speak(u);
+    }else beep([[330,.15],[330,.15]]);
+  }catch(e){beep([[330,.15],[330,.15]])}
+}
 let ringL=0,looping=false;
 const calm=!!(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches);
 function buildRing(){
@@ -206,7 +216,7 @@ function tick(){
   $("timer").textContent=String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
 }
 $("startstop").onclick=()=>{
-  if(!S.timer){const d=$("date").value||today();const msg=check(d);if(msg){$("err").textContent=msg;return}$("err").textContent="";S.timer={start:Date.now(),tow:$("tow").value,date:d,glider:$("glider").value.trim(),payer:$("payer").value.trim(),note:$("note").value.trim(),club:$("club").value};save();render();beep(SND_START);return}
+  if(!S.timer){const d=$("date").value||today();const msg=check(d);if(msg){$("err").textContent=msg;warn();return}$("err").textContent="";S.timer={start:Date.now(),tow:$("tow").value,date:d,glider:$("glider").value.trim(),payer:$("payer").value.trim(),note:$("note").value.trim(),club:$("club").value};save();render();beep(SND_START);return}
   const mins=Math.max(1,Math.round((Date.now()-S.timer.start)/60000));
   if(!addEntry(mins))return;beep(SND_STOP);
 };
