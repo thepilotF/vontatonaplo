@@ -46,6 +46,14 @@ details summary{cursor:pointer;font-weight:700;margin-top:28px}
 .tow-box{background:var(--box);border:2px solid var(--accent);border-radius:12px;padding:2px 12px 14px;margin-top:16px}
 .tow-box label{color:var(--ink);font-size:.95rem;font-weight:700}
 .tow-box input,.tow-box select{font-size:1.2rem;padding:14px 12px;background:var(--surface);border:1px solid var(--accent)}
+.runrow{display:flex;gap:10px;align-items:stretch;margin-top:14px}
+.clock{position:relative;flex:1;min-width:0;height:96px;display:flex;align-items:center;justify-content:center}
+.clock svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.clock .timer{position:relative;margin:0;font-size:2.2rem}
+#track{fill:none;stroke:var(--line);stroke-width:3}
+#prog{fill:none;stroke:var(--accent);stroke-width:3;stroke-linecap:butt}
+#plane{fill:var(--sock);stroke:var(--surface);stroke-width:1;paint-order:stroke}
+.runrow button{flex:0 0 42%;width:auto;margin:0;font-size:1.1rem;padding:10px}
 </style>
 </head>
 <body>
@@ -62,8 +70,13 @@ details summary{cursor:pointer;font-weight:700;margin-top:28px}
     <div><label for="club">Klub</label><select id="club"><option>Malév</option><option>Opitz</option><option>Idegen</option><option>Nem tudom</option></select></div>
   </div>
   <label for="payer">Költségviselő neve</label><input id="payer" aria-required="true" autocomplete="off"></div>
-  <div class="timer" id="timer">00:00</div>
-  <button id="startstop">Vontatás indul</button>
+  <div class="runrow">
+    <div class="clock" id="clock">
+      <svg id="ring" aria-hidden="true"><path id="track"/><path id="prog"/><g id="plane"><g transform="scale(.9)"><ellipse rx="10" ry="2.3"/><path d="M2 -1.8L-3 -10L-6 -10L-4 -1.8ZM2 1.8L-3 10L-6 10L-4 1.8ZM-8 -1L-10 -4.5L-11.5 -4.5L-10.5 -0.5ZM-8 1L-10 4.5L-11.5 4.5L-10.5 0.5Z"/></g></g></svg>
+      <div class="timer" id="timer">00:00</div>
+    </div>
+    <button id="startstop">Vontatás indul</button>
+  </div>
   <label for="min">…vagy perc kézzel</label>
   <div class="row"><input id="min" type="number" inputmode="numeric" min="1" placeholder="perc"><button class="alt" id="addman" style="margin-top:0">Mentés</button></div>
   <p class="hint" id="err" role="alert"></p>
@@ -106,6 +119,28 @@ const hm=ts=>{const d=new Date(ts);return String(d.getHours()).padStart(2,"0")+"
 const today=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
 const tows=()=>S.settings.tows.split("\n").map(l=>l.split(";")).filter(a=>a[0].trim()).map(a=>{const rates={};let def=0;(a[1]||"").split(",").forEach(p=>{const kv=p.split("=");const v=Number(kv[kv.length-1].trim())||0;if(kv.length>1)rates[kv[0].trim()]=v;else if(p.trim())def=v});return{name:a[0].trim(),rates,def}});
 const rateFor=(t,club)=>t.rates[club]!==undefined?t.rates[club]:t.def;
+let ringL=0,looping=false;
+const calm=!!(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches);
+function buildRing(){
+  const c=$("clock"),w=c.clientWidth,h=c.clientHeight;if(!w||!h)return;
+  const i=7,r=16,x1=w-i,y1=h-i,cx=w/2;
+  const d=`M${cx} ${i}H${x1-r}A${r} ${r} 0 0 1 ${x1} ${i+r}V${y1-r}A${r} ${r} 0 0 1 ${x1-r} ${y1}H${i+r}A${r} ${r} 0 0 1 ${i} ${y1-r}V${i+r}A${r} ${r} 0 0 1 ${i+r} ${i}H${cx}`;
+  $("ring").setAttribute("viewBox",`0 0 ${w} ${h}`);
+  $("track").setAttribute("d",d);$("prog").setAttribute("d",d);
+  ringL=$("track").getTotalLength();drawClock();
+}
+function drawClock(){
+  if(!ringL)return;
+  const t=S.timer?(Date.now()-S.timer.start)/1000:0;
+  const len=((t%60)/60)*ringL,p=$("track");
+  $("prog").setAttribute("stroke-dasharray",`${len} ${ringL+1}`);
+  const a=p.getPointAtLength(len);
+  const b=len+2<=ringL?p.getPointAtLength(len+2):a,c=len+2<=ringL?a:p.getPointAtLength(Math.max(0,len-2));
+  const ang=Math.atan2(b.y-c.y,b.x-c.x)*180/Math.PI;
+  $("plane").setAttribute("transform",`translate(${a.x} ${a.y}) rotate(${ang})`);
+}
+function loop(){drawClock();if(S.timer&&!calm)requestAnimationFrame(loop);else looping=false}
+function startLoop(){if(!looping&&S.timer&&!calm){looping=true;requestAnimationFrame(loop)}}
 
 function fillTow(){const cur=$("tow").value;$("tow").innerHTML=tows().map(t=>`<option>${esc(t.name)}</option>`).join("");if(cur)$("tow").value=cur;if(S.timer)$("tow").value=S.timer.tow}
 function fillSettings(){const s=S.settings;$("s-club").value=s.club;$("s-mail").value=s.mail;$("s-fee").value=s.fee;$("s-tows").value=s.tows;$("sub").textContent=s.club||"Add meg a klubnevet a Beállításokban."}
@@ -127,6 +162,7 @@ function addEntry(minutes){
   S.timer=null;save();$("err").textContent="";$("glider").value="";$("payer").value="";$("min").value="";render();return true;
 }
 function tick(){
+  drawClock();startLoop();
   if(!S.timer){$("timer").textContent="00:00";return}
   const s=Math.floor((Date.now()-S.timer.start)/1000);
   $("timer").textContent=String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
@@ -184,6 +220,9 @@ fillSettings();fillTow();showPilot();if(S.timer){$("glider").value=S.timer.glide
 render();
 $("copy").onclick=()=>{const t=$("mailtext");t.select();try{navigator.clipboard.writeText(t.value)}catch(e){try{document.execCommand("copy")}catch(e2){}}};
 setInterval(tick,1000);
+buildRing();
+window.addEventListener("resize",buildRing);
+if(window.ResizeObserver)new ResizeObserver(buildRing).observe($("clock"));
 </script>
 </body>
 </html>
