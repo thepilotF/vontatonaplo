@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Vontatónapló</title>
 <style>
-:root{--bg:#f1efe4;--surface:#fffffb;--ink:#1c2a1e;--muted:#5b695d;--line:#d6d3c2;--accent:#2d6a3a;--on-accent:#fff;--sock:#e2561a;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121813;--surface:#1b241d;--ink:#e8ede6;--muted:#9aa89c;--line:#2e3a30;--accent:#6fc182;--on-accent:#0f1a12;--sock:#ff8a4d;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#121813;--surface:#1b241d;--ink:#e8ede6;--muted:#9aa89c;--line:#2e3a30;--accent:#6fc182;--on-accent:#0f1a12;--sock:#ff8a4d;color-scheme:dark}
+:root{--bg:#f1efe4;--surface:#fffffb;--ink:#1c2a1e;--muted:#5b695d;--line:#d6d3c2;--accent:#2d6a3a;--on-accent:#fff;--sock:#e2561a;--box:#e6f0e2;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--box:#243a2a;--bg:#121813;--surface:#1b241d;--ink:#e8ede6;--muted:#9aa89c;--line:#2e3a30;--accent:#6fc182;--on-accent:#0f1a12;--sock:#ff8a4d;color-scheme:dark}}
+:root[data-theme="dark"]{--box:#243a2a;--bg:#121813;--surface:#1b241d;--ink:#e8ede6;--muted:#9aa89c;--line:#2e3a30;--accent:#6fc182;--on-accent:#0f1a12;--sock:#ff8a4d;color-scheme:dark}
 *{box-sizing:border-box}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 Georgia,"Iowan Old Style","Times New Roman",serif}
@@ -41,6 +41,11 @@ button.stop{background:var(--sock);color:#fff}
 .total{border-top:2px solid var(--ink);margin-top:6px;padding-top:8px;font-weight:700}
 .empty{color:var(--muted);padding:8px 0}
 details summary{cursor:pointer;font-weight:700;margin-top:28px}
+.once select{padding:8px 10px;font-size:.95rem}
+.once label{font-weight:500}
+.tow-box{background:var(--box);border:2px solid var(--accent);border-radius:12px;padding:2px 12px 14px;margin-top:16px}
+.tow-box label{color:var(--ink);font-size:.95rem;font-weight:700}
+.tow-box input,.tow-box select{font-size:1.2rem;padding:14px 12px;background:var(--surface);border:1px solid var(--accent)}
 </style>
 </head>
 <body>
@@ -49,13 +54,14 @@ details summary{cursor:pointer;font-weight:700;margin-top:28px}
 <p class="sub" id="sub"></p>
 
 <div class="panel">
-  <div class="row"><div><label for="pilot">Vontatópilóta</label><select id="pilot" aria-required="true"><option value="">Válassz…</option><option>Boskovitz Ábel</option><option>Fülöp Ádám</option><option>Laczkó Balázs</option><option>Szíj Bálint</option><option>Valastyán Máté</option><option>Veigli Szabolcs</option></select></div>
+  <div class="row once"><div><label for="pilot">Vontatópilóta</label><select id="pilot" aria-required="true"><option value="">Válassz…</option><option>Boskovitz Ábel</option><option>Fülöp Ádám</option><option>Laczkó Balázs</option><option>Szíj Bálint</option><option>Valastyán Máté</option><option>Veigli Szabolcs</option></select></div>
   <div><label for="tow">Vontatógép</label><select id="tow"></select></div></div>
+  <div class="tow-box">
   <div class="row">
     <div><label for="glider">Vontatott gép</label><input id="glider" placeholder="pl. HA-4321" autocapitalize="characters"></div>
     <div><label for="club">Klub</label><select id="club"><option>Malév</option><option>Opitz</option><option>Idegen</option><option>Nem tudom</option></select></div>
   </div>
-  <label for="payer">Költségviselő neve (a vontatmányban ülő)</label><input id="payer" aria-required="true" autocomplete="off">
+  <label for="payer">Költségviselő neve</label><input id="payer" aria-required="true" autocomplete="off"></div>
   <div class="timer" id="timer">00:00</div>
   <button id="startstop">Vontatás indul</button>
   <label for="min">…vagy perc kézzel</label>
