@@ -103,7 +103,7 @@ button:disabled{background:#a9aca8!important;color:#eceee9!important;cursor:not-
 </head>
 <body>
 <main>
-  <p class="sig">Tow Log by Adam Fulop (LHDK)<i>v46</i></p>
+  <p class="sig">Tow Log by Adam Fulop (LHDK)<i>v47</i></p>
 
 <div class="panel">
   <div class="row once"><div><label for="pilot">Vontatópilóta</label><select id="pilot" aria-required="true"><option value="">Válassz…</option><option>Balasi László</option><option>Boskovitz Ábel</option><option>Donka Attila</option><option>Erdősi Béla</option><option>Fülöp Ádám</option><option>Kovács Péter</option><option>Laczkó Balázs</option><option>Szenes Gábor</option><option>Szíj Bálint</option><option>Szilágyi Tibor</option><option>Valastyán Máté</option><option>Veigli Szabolcs</option><option>Werner Miklós</option></select></div>
@@ -356,7 +356,7 @@ function pickSug(k,v){
   inp.addEventListener("focus",show);inp.addEventListener("click",show);inp.addEventListener("input",show);
   inp.addEventListener("blur",()=>setTimeout(()=>{box.hidden=true},250));
 });
-const GPS_KMH=20,GPS_N=3;
+const GPS_KMH=20,GPS_STOP=80,GPS_N=3;
 function completePending(){
   const p=S.pending;if(!p)return;
   if(check(p.date))return;
@@ -366,11 +366,11 @@ function distM(a,b){const R=6371000,r=Math.PI/180,dl=(b.latitude-a.latitude)*r,d
   x=Math.sin(dl/2)**2+Math.cos(a.latitude*r)*Math.cos(b.latitude*r)*Math.sin(dg/2)**2;return 2*R*Math.asin(Math.sqrt(x))}
 function gpsOff(){
   if(gps.id!=null){try{navigator.geolocation.clearWatch(gps.id)}catch(e){}}
-  gps={on:false,id:null,up:0,upTs:0,dn:0,dnTs:0,last:null};render();
+  gps={on:false,id:null,up:0,upTs:0,dn:0,dnTs:0,last:null,fast:false};render();
 }
 function gpsInfo(kmh){
   const v=kmh==null?"…":Math.round(kmh)+" km/h";
-  $("gpsinfo").textContent=S.timer?`GPS: ${v} · leáll ${GPS_KMH} km/h alatt`:`GPS: ${v} · indul ${GPS_KMH} km/h fölött`;
+  $("gpsinfo").textContent=S.timer?`GPS: ${v} · leáll ${GPS_STOP} km/h alatt`:`GPS: ${v} · indul ${GPS_KMH} km/h fölött`;
 }
 function gpsFix(pos){
   if(!gps.on)return;
@@ -384,10 +384,12 @@ function gpsFix(pos){
     if(gps.up>=GPS_N){
       const d=$("date").value||today();
       S.timer={start:Math.min(gps.upTs,Date.now()),tow:$("tow").value,date:d,glider:$("glider").value.trim(),payer:$("payer").value.trim(),note:$("note").value.trim(),club:$("club").value};
-      gps.up=0;gps.dn=0;save();render();gpsInfo(kmh);beep(SND_START);
+      gps.up=0;gps.dn=0;gps.fast=false;save();render();gpsInfo(kmh);beep(SND_START);
     }
   }else{
-    if(kmh<GPS_KMH){if(!gps.dn)gps.dnTs=pos.timestamp;gps.dn++}else gps.dn=0;
+    if(kmh>=GPS_STOP)gps.fast=true;
+    const lim=gps.fast?GPS_STOP:GPS_KMH;
+    if(kmh<lim){if(!gps.dn)gps.dnTs=pos.timestamp;gps.dn++}else gps.dn=0;
     if(gps.dn>=GPS_N&&pos.timestamp-S.timer.start>30000){
       const mins=Math.max(1,Math.round((gps.dnTs-S.timer.start)/60000));
       const d=S.timer.date,start=S.timer.start;
@@ -405,7 +407,7 @@ $("gpsbtn").onclick=()=>{
   if(msg){$("err").textContent=msg;warn();markNeed();return}
   $("err").textContent="";
   try{keepAwake()}catch(e){}
-  gps={on:true,id:null,up:0,upTs:0,dn:0,dnTs:0,last:null};
+  gps={on:true,id:null,up:0,upTs:0,dn:0,dnTs:0,last:null,fast:false};
   gps.id=navigator.geolocation.watchPosition(gpsFix,er=>{
     if(er&&er.code===1){$("err").textContent="A GPS nem engedélyezett – engedélyezd a helymeghatározást a böngészőben.";gpsOff()}
   },{enableHighAccuracy:true,maximumAge:0,timeout:20000});
