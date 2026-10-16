@@ -88,10 +88,10 @@ details summary{cursor:pointer;font-weight:700;margin-top:28px}
   <div><label for="tow">Vontatógép</label><select id="tow"></select></div></div>
   <div class="tow-box">
   <div class="row">
-    <div><label for="glider">Vontatmány</label><input id="glider" placeholder="pl. HA-4321" autocapitalize="characters"></div>
+    <div><label for="glider">Vontatmány</label><input id="glider" placeholder="pl. HA-4321" autocapitalize="characters" autocomplete="off" list="dl-glider"><datalist id="dl-glider"></datalist></div>
     <div><label for="club">Klub</label><select id="club"><option value="">Válassz…</option><option>Malév</option><option>Opitz</option><option>Idegen</option><option>Nem tudom</option></select></div>
   </div>
-  <div class="row split"><div><label for="payer">Költségviselő neve</label><input id="payer" aria-required="true" autocomplete="off"></div><div><label for="note">Megjegyzés</label><input id="note" autocomplete="off"></div></div></div>
+  <div class="row split"><div><label for="payer">Költségviselő neve</label><input id="payer" aria-required="true" autocomplete="off" list="dl-payer"><datalist id="dl-payer"></datalist></div><div><label for="note">Megjegyzés</label><input id="note" autocomplete="off"></div></div></div>
   <div class="runrow">
     <div class="clock" id="clock">
       <svg id="ring" aria-hidden="true"><path id="track"/><path id="prog"/><line id="rope" style="stroke:var(--ink)" stroke-width="1.4"/><g id="glid"><g transform="scale(.85)"><ellipse cx="-1" rx="10" ry="1.4"/><path d="M3 -1.2L2 -14L-.4 -14L-.8 -1.2ZM3 1.2L2 14L-.4 14L-.8 1.2ZM-9 -.8L-10 -4.2L-11.6 -4.2L-11 -.6ZM-9 .8L-10 4.2L-11.6 4.2L-11 .6Z"/></g></g><g id="tug"><g transform="scale(.95)"><ellipse cx="-.5" rx="8.5" ry="2.3"/><path d="M2.5 -2L1 -9.5L-3 -9.5L-2.5 -2ZM2.5 2L1 9.5L-3 9.5L-2.5 2ZM-6.5 -1.2L-8.5 -4.8L-10.8 -4.8L-9.8 -.8ZM-6.5 1.2L-8.5 4.8L-10.8 4.8L-9.8 .8Z"/><path d="M9.6 -3.2V3.2" style="stroke:var(--ink)" stroke-width="1.3"/></g></g></svg>
@@ -250,8 +250,10 @@ function adjust(id,d){
   const r=e.rate!==undefined?e.rate:rateFor(tows().find(t=>t.name===e.tow)||{rates:{},def:0},e.club);
   e.minutes=m;e.price+=d*r;e.edited=true;save();render();
 }
+function fillSuggest(){const d=day().slice().reverse();const u=k=>[...new Set(d.map(e=>(e[k]||"").trim()).filter(Boolean))];
+  $("dl-glider").innerHTML=u("glider").map(v=>`<option value="${esc(v)}">`).join("");$("dl-payer").innerHTML=u("payer").map(v=>`<option value="${esc(v)}">`).join("")}
 function render(){
-  const run=!!S.timer;
+  fillSuggest();const run=!!S.timer;
   $("startstop").textContent=run?"STOP":"START";
   $("startstop").className=run?"stop":"";
   $("tow").disabled=run;
