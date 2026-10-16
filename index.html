@@ -86,6 +86,13 @@ button:disabled{background:#a9aca8!important;color:#eceee9!important;cursor:not-
 :root[data-theme="dark"] .gpsinfo{color:#7fb3ff}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .gpsinfo{color:#7fb3ff}}
 @media (prefers-reduced-motion:reduce){.runrow button.gps.on{animation:none}}
+.sugwrap{position:relative}
+.sug{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:30;background:var(--surface);border:2px solid var(--accent);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.28);max-height:230px;overflow:auto;-webkit-overflow-scrolling:touch}
+.sug[hidden]{display:none}
+.sug button{display:block;width:100%;margin:0;border-radius:0;background:transparent;color:var(--ink);text-align:left;font:700 1.15rem system-ui,sans-serif;padding:13px 14px;min-height:48px;border-bottom:1px solid var(--line)}
+.sug button:last-child{border-bottom:0}
+.sug button:active{background:var(--box)}
+.sig i{font-style:normal;opacity:.6;margin-left:.6em}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 .chips:empty{display:none}
 .chips button{width:auto;margin:0;padding:10px 14px;min-height:44px;font:700 1.05rem system-ui,sans-serif;background:var(--surface);color:var(--ink);border:1.5px solid var(--accent);border-radius:999px}
@@ -94,7 +101,7 @@ button:disabled{background:#a9aca8!important;color:#eceee9!important;cursor:not-
 </head>
 <body>
 <main>
-  <p class="sig">Tow Log by Adam Fulop (LHDK)</p>
+  <p class="sig">Tow Log by Adam Fulop (LHDK)<i>v44</i></p>
 
 <div class="panel">
   <div class="row once"><div><label for="pilot">Vontatópilóta</label><select id="pilot" aria-required="true"><option value="">Válassz…</option><option>Balasi László</option><option>Boskovitz Ábel</option><option>Donka Attila</option><option>Erdősi Béla</option><option>Fülöp Ádám</option><option>Kovács Péter</option><option>Laczkó Balázs</option><option>Szenes Gábor</option><option>Szíj Bálint</option><option>Szilágyi Tibor</option><option>Valastyán Máté</option><option>Veigli Szabolcs</option><option>Werner Miklós</option></select></div>
@@ -323,6 +330,30 @@ if(window.ResizeObserver)new ResizeObserver(buildRing).observe($("clock"));
 
 // ---- GPS automatika: 20 km/h fölött indul, alatta megáll ----
 $("glider").addEventListener("input",()=>fillSuggest());$("payer").addEventListener("input",()=>fillSuggest());
+
+// Legördülő javaslat-buborék a mai napon már beírt rendszámokból / nevekből
+function sugList(k){const d=day().slice().reverse();return [...new Set(d.map(e=>(e[k]||"").trim()).filter(Boolean))]}
+function pickSug(k,v){
+  $(k).value=v;
+  if(k==="glider"){const last=day().slice().reverse().find(e=>(e.glider||"").trim()===v);
+    if(last){if(last.club)$("club").value=last.club;if(last.payer)$("payer").value=last.payer}}
+  markNeed();fillSuggest();
+}
+["glider","payer"].forEach(k=>{
+  const inp=$(k),par=inp.parentElement;par.classList.add("sugwrap");
+  const box=document.createElement("div");box.className="sug";box.hidden=true;par.appendChild(box);
+  const show=(ev)=>{
+    const q=ev&&ev.type==="input"?inp.value.trim().toUpperCase():"";
+    const items=sugList(k).filter(v=>!q||v.toUpperCase().includes(q));
+    if(!items.length||(q&&items.length===1&&items[0].toUpperCase()===q)){box.hidden=true;return}
+    box.innerHTML=items.map(v=>`<button type="button" data-v="${esc(v)}">${esc(v)}</button>`).join("");
+    box.querySelectorAll("button").forEach(b=>b.onclick=()=>{box.hidden=true;pickSug(k,b.dataset.v);inp.blur()});
+    box.hidden=false;
+  };
+  box.addEventListener("mousedown",e=>e.preventDefault());
+  inp.addEventListener("focus",show);inp.addEventListener("click",show);inp.addEventListener("input",show);
+  inp.addEventListener("blur",()=>setTimeout(()=>{box.hidden=true},250));
+});
 const GPS_KMH=20,GPS_N=3;
 function completePending(){
   const p=S.pending;if(!p)return;
