@@ -86,6 +86,10 @@ button:disabled{background:#a9aca8!important;color:#eceee9!important;cursor:not-
 :root[data-theme="dark"] .gpsinfo{color:#7fb3ff}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .gpsinfo{color:#7fb3ff}}
 @media (prefers-reduced-motion:reduce){.runrow button.gps.on{animation:none}}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.chips:empty{display:none}
+.chips button{width:auto;margin:0;padding:10px 14px;min-height:44px;font:700 1.05rem system-ui,sans-serif;background:var(--surface);color:var(--ink);border:1.5px solid var(--accent);border-radius:999px}
+.chips button.sel{background:var(--accent);color:var(--on-accent)}
 </style>
 </head>
 <body>
@@ -97,10 +101,11 @@ button:disabled{background:#a9aca8!important;color:#eceee9!important;cursor:not-
   <div><label for="tow">Vontatógép</label><select id="tow"></select></div></div>
   <div class="tow-box">
   <div class="row">
-    <div><label for="glider">Vontatmány</label><input id="glider" placeholder="pl. HA-4321" autocapitalize="characters" autocomplete="off" list="dl-glider"><datalist id="dl-glider"></datalist></div>
+    <div><label for="glider">Vontatmány</label><input id="glider" placeholder="pl. HA-4321" autocapitalize="characters" autocomplete="off"></div>
     <div><label for="club">Klub</label><select id="club"><option value="">Válassz…</option><option>Malév</option><option>Opitz</option><option>Idegen</option><option>Nem tudom</option></select></div>
   </div>
-  <div class="row split"><div><label for="payer">Költségviselő neve</label><input id="payer" aria-required="true" autocomplete="off" list="dl-payer"><datalist id="dl-payer"></datalist></div><div><label for="note">Megjegyzés</label><input id="note" autocomplete="off"></div></div></div>
+  <div class="chips" id="ch-glider"></div>
+  <div class="row split"><div><label for="payer">Költségviselő neve</label><input id="payer" aria-required="true" autocomplete="off"></div><div><label for="note">Megjegyzés</label><input id="note" autocomplete="off"></div></div><div class="chips" id="ch-payer"></div></div>
   <div class="runrow">
     <div class="clock" id="clock">
       <svg id="ring" aria-hidden="true"><path id="track"/><path id="prog"/><line id="rope" style="stroke:var(--ink)" stroke-width="1.4"/><g id="glid"><g transform="scale(.85)"><ellipse cx="-1" rx="10" ry="1.4"/><path d="M3 -1.2L2 -14L-.4 -14L-.8 -1.2ZM3 1.2L2 14L-.4 14L-.8 1.2ZM-9 -.8L-10 -4.2L-11.6 -4.2L-11 -.6ZM-9 .8L-10 4.2L-11.6 4.2L-11 .6Z"/></g></g><g id="tug"><g transform="scale(.95)"><ellipse cx="-.5" rx="8.5" ry="2.3"/><path d="M2.5 -2L1 -9.5L-3 -9.5L-2.5 -2ZM2.5 2L1 9.5L-3 9.5L-2.5 2ZM-6.5 -1.2L-8.5 -4.8L-10.8 -4.8L-9.8 -.8ZM-6.5 1.2L-8.5 4.8L-10.8 4.8L-9.8 .8Z"/><path d="M9.6 -3.2V3.2" style="stroke:var(--ink)" stroke-width="1.3"/></g></g></svg>
@@ -263,8 +268,18 @@ function adjust(id,d){
   const r=e.rate!==undefined?e.rate:rateFor(tows().find(t=>t.name===e.tow)||{rates:{},def:0},e.club);
   e.minutes=m;e.price+=d*r;e.edited=true;save();render();
 }
-function fillSuggest(){const d=day().slice().reverse();const u=k=>[...new Set(d.map(e=>(e[k]||"").trim()).filter(Boolean))];
-  $("dl-glider").innerHTML=u("glider").map(v=>`<option value="${esc(v)}">`).join("");$("dl-payer").innerHTML=u("payer").map(v=>`<option value="${esc(v)}">`).join("")}
+function fillSuggest(){
+  const d=day().slice().reverse();
+  const u=k=>[...new Set(d.map(e=>(e[k]||"").trim()).filter(Boolean))].slice(0,8);
+  const mk=(id,k)=>{const box=$(id),cur=$(k).value.trim().toUpperCase();
+    box.innerHTML=u(k).map(v=>`<button type="button" data-v="${esc(v)}"${v.toUpperCase()===cur?' class="sel"':""}>${esc(v)}</button>`).join("");
+    box.querySelectorAll("button").forEach(b=>b.onclick=()=>{
+      const v=b.dataset.v;$(k).value=v;
+      if(k==="glider"){const last=d.find(e=>(e.glider||"").trim()===v);
+        if(last){if(last.club)$("club").value=last.club;if(last.payer)$("payer").value=last.payer}}
+      markNeed();fillSuggest()})};
+  mk("ch-glider","glider");mk("ch-payer","payer");
+}
 function render(){
   fillSuggest();const run=!!S.timer;
   $("startstop").textContent=run?"STOP":"START";
@@ -307,6 +322,7 @@ window.addEventListener("resize",buildRing);
 if(window.ResizeObserver)new ResizeObserver(buildRing).observe($("clock"));
 
 // ---- GPS automatika: 20 km/h fölött indul, alatta megáll ----
+$("glider").addEventListener("input",()=>fillSuggest());$("payer").addEventListener("input",()=>fillSuggest());
 const GPS_KMH=20,GPS_N=3;
 function completePending(){
   const p=S.pending;if(!p)return;
