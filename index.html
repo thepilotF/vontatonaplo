@@ -96,12 +96,14 @@ button:disabled{background:#a9aca8!important;color:#eceee9!important;cursor:not-
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 .chips:empty{display:none}
 .chips button{width:auto;margin:0;padding:10px 14px;min-height:44px;font:700 1.05rem system-ui,sans-serif;background:var(--surface);color:var(--ink);border:1.5px solid var(--accent);border-radius:999px}
+#ch-glider{gap:6px}
+#ch-glider button{padding:7px 9px;min-height:30px;font-size:.7rem}
 .chips button.sel{background:var(--accent);color:var(--on-accent)}
 </style>
 </head>
 <body>
 <main>
-  <p class="sig">Tow Log by Adam Fulop (LHDK)<i>v44</i></p>
+  <p class="sig">Tow Log by Adam Fulop (LHDK)<i>v45</i></p>
 
 <div class="panel">
   <div class="row once"><div><label for="pilot">Vontatópilóta</label><select id="pilot" aria-required="true"><option value="">Válassz…</option><option>Balasi László</option><option>Boskovitz Ábel</option><option>Donka Attila</option><option>Erdősi Béla</option><option>Fülöp Ádám</option><option>Kovács Péter</option><option>Laczkó Balázs</option><option>Szenes Gábor</option><option>Szíj Bálint</option><option>Szilágyi Tibor</option><option>Valastyán Máté</option><option>Veigli Szabolcs</option><option>Werner Miklós</option></select></div>
@@ -283,7 +285,7 @@ function fillSuggest(){
     box.querySelectorAll("button").forEach(b=>b.onclick=()=>{
       const v=b.dataset.v;$(k).value=v;
       if(k==="glider"){const last=d.find(e=>(e.glider||"").trim()===v);
-        if(last){if(last.club)$("club").value=last.club;if(last.payer)$("payer").value=last.payer}}
+        if(last){if(last.club)$("club").value=last.club}}
       markNeed();fillSuggest()})};
   mk("ch-glider","glider");mk("ch-payer","payer");
 }
@@ -336,7 +338,7 @@ function sugList(k){const d=day().slice().reverse();return [...new Set(d.map(e=>
 function pickSug(k,v){
   $(k).value=v;
   if(k==="glider"){const last=day().slice().reverse().find(e=>(e.glider||"").trim()===v);
-    if(last){if(last.club)$("club").value=last.club;if(last.payer)$("payer").value=last.payer}}
+    if(last){if(last.club)$("club").value=last.club}}
   markNeed();fillSuggest();
 }
 ["glider","payer"].forEach(k=>{
