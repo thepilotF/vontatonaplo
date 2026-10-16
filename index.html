@@ -290,6 +290,18 @@ $("minus").onclick=()=>{$("min").value=Math.max(1,(parseInt($("min").value,10)||
 buildRing();
 window.addEventListener("resize",buildRing);
 if(window.ResizeObserver)new ResizeObserver(buildRing).observe($("clock"));
+// Képernyő ébren tartása, amíg az oldal nyitva van (Screen Wake Lock)
+let wl=null;
+async function keepAwake(){
+  try{
+    if(!("wakeLock" in navigator)||document.visibilityState!=="visible"||(wl&&!wl.released))return;
+    wl=await navigator.wakeLock.request("screen");
+    wl.addEventListener("release",()=>{wl=null});
+  }catch(e){wl=null}
+}
+keepAwake();
+document.addEventListener("visibilitychange",keepAwake);
+["pointerdown","touchend","keydown"].forEach(ev=>document.addEventListener(ev,keepAwake,{passive:true}));
 </script>
 </body>
 </html>
