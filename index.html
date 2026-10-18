@@ -106,7 +106,7 @@ button:disabled{background:#a9aca8!important;color:#eceee9!important;cursor:not-
 </head>
 <body>
 <main>
-  <p class="sig">Tow Log by Adam Fulop (LHDK)<i>v51</i></p>
+  <p class="sig">Tow Log by Adam Fulop (LHDK)<i>v52</i></p>
 
 <div class="panel">
   <div class="row once"><div><label for="pilot">Vontatópilóta</label><select id="pilot" aria-required="true"><option value="">Válassz…</option><option>Balasi László</option><option>Boskovitz Ábel</option><option>Donka Attila</option><option>Erdősi Béla</option><option>Fülöp Ádám</option><option>Kovács Péter</option><option>Laczkó Balázs</option><option>Szenes Gábor</option><option>Szíj Bálint</option><option>Szilágyi Tibor</option><option>Valastyán Máté</option><option>Veigli Szabolcs</option><option>Werner Miklós</option></select></div>
@@ -236,10 +236,10 @@ async function flushOutbox(){
   try{for(const d of Object.keys(S.outbox)){
     try{
       const r=await fetch(SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(S.outbox[d])});
-      const j=await r.json();
+      const txt=await r.text();let j=null;try{j=JSON.parse(txt)}catch(x){}
       if(j&&j.ok){delete S.outbox[d];save();sheetMsg("Google Táblázatba mentve ✓")}
-      else sheetMsg("A táblázatba mentés nem sikerült, később újrapróbálom.");
-    }catch(e){sheetMsg("Nincs kapcsolat: a táblázatba mentés később megtörténik.")}
+      else sheetMsg("A táblázatba mentés nem sikerült ("+(j&&j.error?j.error:"HTTP "+r.status+", nem JSON válasz")+"), később újrapróbálom.");
+    }catch(e){sheetMsg("A táblázatba mentés nem sikerült ("+(e&&e.message||"hálózati hiba")+"), később újrapróbálom.")}
   }}finally{flushing=false}
 }
 function queueSheet(date){if(!SHEET_URL)return;S.outbox=S.outbox||{};S.outbox[date]=sheetPayload(date);save();sheetMsg("Táblázatba küldés…");flushOutbox()}
