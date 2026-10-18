@@ -57,6 +57,7 @@ button.stop{background:#c8102e;color:#fff}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .min{color:#ff6b6b}}
 :root[data-theme="dark"] .min{color:#ff6b6b}
 .sum{display:flex;justify-content:space-between;font-family:system-ui,sans-serif;padding:6px 0}
+.sum .r{text-align:right}
 .total{border-top:2px solid var(--ink);margin-top:6px;padding-top:8px;font-weight:700}
 .empty{color:var(--muted);padding:8px 0}
 details summary{cursor:pointer;font-weight:700;margin-top:28px}
@@ -103,7 +104,7 @@ button:disabled{background:#a9aca8!important;color:#eceee9!important;cursor:not-
 </head>
 <body>
 <main>
-  <p class="sig">Tow Log by Adam Fulop (LHDK)<i>v48</i></p>
+  <p class="sig">Tow Log by Adam Fulop (LHDK)<i>v49</i></p>
 
 <div class="panel">
   <div class="row once"><div><label for="pilot">Vontatópilóta</label><select id="pilot" aria-required="true"><option value="">Válassz…</option><option>Balasi László</option><option>Boskovitz Ábel</option><option>Donka Attila</option><option>Erdősi Béla</option><option>Fülöp Ádám</option><option>Kovács Péter</option><option>Laczkó Balázs</option><option>Szenes Gábor</option><option>Szíj Bálint</option><option>Szilágyi Tibor</option><option>Valastyán Máté</option><option>Veigli Szabolcs</option><option>Werner Miklós</option></select></div>
@@ -153,10 +154,10 @@ button:disabled{background:#a9aca8!important;color:#eceee9!important;cursor:not-
 <script>
 const KEY="vontatonaplo-v1";
 var gps={on:false};
-const def={settings:{club:"",pilot:"",mail:"",fee:0,tows:"HA-FBL;Malév=2600,Opitz=2750\nOM-DJS;2800\nHA-TUS;0\nHA-SEP;0\nHA-MJC;0"},entries:[],pilots:{},timer:null};
+const def={settings:{club:"",pilot:"",mail:"",fee:0,tows:"HA-FBL;Malév=2500,Opitz=2700\nOM-DJS;2800\nHA-TUS;2500\nHA-SEP;2650\nHA-MJC;0"},entries:[],pilots:{},timer:null};
 let S=def;
 try{const r=localStorage.getItem(KEY);if(r)S=Object.assign({},def,JSON.parse(r))}catch(e){}
-if(/^HA-FBL;0\nOM-DJS;0/.test(S.settings.tows)||/^HA-VON1/.test(S.settings.tows))S.settings.tows=def.settings.tows;
+if(S.settings.tows==="HA-FBL;Malév=2600,Opitz=2750\nOM-DJS;2800\nHA-TUS;0\nHA-SEP;0\nHA-MJC;0"||/^HA-FBL;0\nOM-DJS;0/.test(S.settings.tows)||/^HA-VON1/.test(S.settings.tows))S.settings.tows=def.settings.tows;
 S.pilots=S.pilots||{};
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const $=id=>document.getElementById(id);
@@ -226,7 +227,7 @@ function fillTow(){const cur=$("tow").value;$("tow").innerHTML=tows().map(t=>`<o
 const MAIL="themiddleF@gmail.com";
 const SHEET_URL="",SHEET_TOKEN="F8v5XNDWGM1Wk3fmPBHefWTh"; // a Google Apps Script webcíme kerül ide (lásd vontatonaplo-drive.gs)
 function sheetMsg(t){const m=$("sheetmsg");if(m)m.textContent=t}
-function sheetPayload(date){return{token:SHEET_TOKEN,date,entries:S.entries.filter(e=>e.date===date).map(e=>({payer:e.payer||"",tow:e.tow||"",minutes:e.minutes,price:e.price||0,pilot:e.pilot||"",club:e.club||"",time:e.time||"",glider:e.glider||"",note:e.note||""}))}}
+function sheetPayload(date){return{token:SHEET_TOKEN,date,entries:S.entries.filter(e=>e.date===date).map(e=>({payer:e.payer||"",tow:e.tow||"",minutes:e.minutes,pilot:e.pilot||"",club:e.club||"",time:e.time||"",glider:e.glider||"",note:e.note||""}))}}
 let flushing=false;
 async function flushOutbox(){
   if(!SHEET_URL||!S.outbox||flushing)return;flushing=true;
@@ -320,7 +321,7 @@ function render(){
   document.querySelectorAll(".adj").forEach(b=>b.onclick=()=>adjust(b.dataset.id,Number(b.dataset.d)));
   const g=groups(),ks=Object.keys(g);
   let tn=0,tm=0,tp=0;
-  $("summary").innerHTML=ks.length?ks.map(k=>{const x=g[k];tn+=x.n;tm+=x.m;tp+=x.p;return `<div class="sum"><span>${esc(k)}<br><small class="hint">${x.n} vontatás</small></span><b>${x.m} perc</b></div>`}).join("")+`<div class="sum total"><span>Összesen (${tn} vontatás)</span><span>${tm} perc</span></div>`:'<div class="empty">Nincs mit összesíteni.</div>';
+  $("summary").innerHTML=ks.length?ks.map(k=>{const x=g[k];tn+=x.n;tm+=x.m;tp+=x.p;return `<div class="sum"><span>${esc(k)}<br><small class="hint">${x.n} vontatás</small></span><b class="r">${x.m} perc<br><small class="hint">${ft(x.p)}</small></b></div>`}).join("")+`<div class="sum total"><span>Összesen (${tn} vontatás)</span><span class="r"><b>${tm} perc</b><br><small class="hint">${ft(tp)}</small></span></div>`:'<div class="empty">Nincs mit összesíteni.</div>';
   tick();
 }
 $("send").onclick=()=>{
