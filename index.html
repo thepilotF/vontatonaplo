@@ -84,6 +84,9 @@ details summary{cursor:pointer;font-weight:700;margin-top:28px}
 .runrow button.gps.on{background:#0b4aa8;box-shadow:0 0 0 3px #7fb3ff;animation:gpsp 1.6s ease-in-out infinite}
 @keyframes gpsp{0%,100%{box-shadow:0 0 0 3px #7fb3ff}50%{box-shadow:0 0 0 6px rgba(127,179,255,.25)}}
 button:disabled{background:#a9aca8!important;color:#eceee9!important;cursor:not-allowed;box-shadow:none!important;animation:none!important}
+#send{background:#1a6fd4;color:#fff;font-size:1.15rem;font-weight:800;padding:16px}
+#sheetmsg.ok{color:var(--accent);font:800 1rem system-ui,sans-serif;text-align:center;margin-top:10px}
+#sheetmsg.err{color:#c8102e;font-weight:700}
 .gpsinfo{margin:8px 0 0;text-align:center;font:600 .85rem system-ui,sans-serif;color:#1a6fd4}
 .gpsinfo[hidden]{display:none}
 :root[data-theme="dark"] .gpsinfo{color:#7fb3ff}
@@ -106,7 +109,7 @@ button:disabled{background:#a9aca8!important;color:#eceee9!important;cursor:not-
 </head>
 <body>
 <main>
-  <p class="sig">Tow Log by Adam Fulop (LHDK)<i>v52</i></p>
+  <p class="sig">Tow Log by Adam Fulop (LHDK)<i>v53</i></p>
 
 <div class="panel">
   <div class="row once"><div><label for="pilot">Vontatópilóta</label><select id="pilot" aria-required="true"><option value="">Válassz…</option><option>Balasi László</option><option>Boskovitz Ábel</option><option>Donka Attila</option><option>Erdősi Béla</option><option>Fülöp Ádám</option><option>Kovács Péter</option><option>Laczkó Balázs</option><option>Szenes Gábor</option><option>Szíj Bálint</option><option>Szilágyi Tibor</option><option>Valastyán Máté</option><option>Veigli Szabolcs</option><option>Werner Miklós</option></select></div>
@@ -138,10 +141,8 @@ button:disabled{background:#a9aca8!important;color:#eceee9!important;cursor:not-
 
 <h2>Összesítés</h2>
 <div class="panel" id="summary"></div>
-<button id="send">Összesítés küldése emailben</button>
+<button id="send">Nap lezárása, mentés</button>
 <p class="hint" id="sheetmsg" role="status"></p>
-<p class="hint">Megnyílik az email alkalmazásod a kész szöveggel, neked csak a Küldés gombot kell megnyomnod.</p>
-<div id="mailbox" class="panel" hidden style="margin-top:10px"><label for="mailtext" style="margin-top:0">Ha nem nyílt meg az email, másold ki a szöveget</label><textarea id="mailtext" readonly></textarea><button class="alt" id="copy">Szöveg másolása</button></div>
 
 <details>
 <summary>Beállítások</summary>
@@ -226,10 +227,16 @@ function loop(){drawClock();if(S.timer&&!calm)requestAnimationFrame(loop);else l
 function startLoop(){if(!looping&&S.timer&&!calm){looping=true;requestAnimationFrame(loop)}}
 
 function fillTow(){const cur=$("tow").value;$("tow").innerHTML=tows().map(t=>`<option>${esc(t.name)}</option>`).join("");if(cur)$("tow").value=cur;if(S.timer)$("tow").value=S.timer.tow}
-const MAIL="themiddleF@gmail.com";
 const SHEET_URL="https://script.google.com/macros/s/AKfycbzVlCDMXDa9sjq_efUi5AtD9fqOKs4NhIKCj4VALPgq3Px5368g25u48rlc_J-3fN1u/exec",SHEET_TOKEN="F8v5XNDWGM1Wk3fmPBHefWTh"; // a Google Apps Script webcíme kerül ide (lásd vontatonaplo-drive.gs)
-function sheetMsg(t){const m=$("sheetmsg");if(m)m.textContent=t}
+function sheetMsg(t,kind){const m=$("sheetmsg");if(m){m.textContent=t;m.dataset.kind=kind||"";m.className="hint "+(kind||"")}}
 function sheetPayload(date){return{token:SHEET_TOKEN,date,entries:S.entries.filter(e=>e.date===date).map(e=>({payer:e.payer||"",tow:e.tow||"",minutes:e.minutes,pilot:e.pilot||"",club:e.club||"",time:e.time||"",glider:e.glider||"",note:e.note||""}))}}
+function dayClosed(d){return !!(S.saved&&S.saved[d]&&S.saved[d]===JSON.stringify(sheetPayload(d).entries)&&!(S.outbox&&S.outbox[d]))}
+function syncCloseBtn(){
+  const b=$("send");if(!b)return;const d=$("date").value||today();const closed=dayClosed(d);
+  b.disabled=closed;b.classList.toggle("done",closed);
+  if(closed)sheetMsg("Az adatok mentése sikeresen megtörtént ✓","ok");
+  else if($("sheetmsg").dataset.kind==="ok")sheetMsg("");
+}
 let flushing=false;
 async function flushOutbox(){
   if(!SHEET_URL||!S.outbox||flushing)return;flushing=true;
@@ -237,12 +244,12 @@ async function flushOutbox(){
     try{
       const r=await fetch(SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(S.outbox[d])});
       const txt=await r.text();let j=null;try{j=JSON.parse(txt)}catch(x){}
-      if(j&&j.ok){delete S.outbox[d];save();sheetMsg("Google Táblázatba mentve ✓")}
-      else sheetMsg("A táblázatba mentés nem sikerült ("+(j&&j.error?j.error:"HTTP "+r.status+", nem JSON válasz")+"), később újrapróbálom.");
-    }catch(e){sheetMsg("A táblázatba mentés nem sikerült ("+(e&&e.message||"hálózati hiba")+"), később újrapróbálom.")}
-  }}finally{flushing=false}
+      if(j&&j.ok){S.saved=S.saved||{};S.saved[d]=JSON.stringify(S.outbox[d].entries);delete S.outbox[d];save()}
+      else sheetMsg("A mentés nem sikerült ("+(j&&j.error?j.error:"HTTP "+r.status+", nem JSON válasz")+"), később újrapróbálom.","err");
+    }catch(e){sheetMsg("A mentés nem sikerült ("+(e&&e.message||"hálózati hiba")+"), később újrapróbálom.","err")}
+  }}finally{flushing=false;render()}
 }
-function queueSheet(date){if(!SHEET_URL)return;S.outbox=S.outbox||{};S.outbox[date]=sheetPayload(date);save();sheetMsg("Táblázatba küldés…");flushOutbox()}
+function queueSheet(date){if(!SHEET_URL)return;S.outbox=S.outbox||{};S.outbox[date]=sheetPayload(date);save();sheetMsg("Mentés folyamatban…","");flushOutbox()}
 window.addEventListener("online",flushOutbox);setTimeout(flushOutbox,1500);
 function fillSettings(){const s=S.settings;$("s-fee").value=s.fee;$("s-tows").value=s.tows}
 
@@ -311,7 +318,7 @@ function fillSuggest(){
   mk("ch-glider","glider");mk("ch-payer","payer");
 }
 function render(){
-  fillSuggest();const run=!!S.timer;
+  fillSuggest();syncCloseBtn();const run=!!S.timer;
   $("startstop").textContent=run?"STOP":"START";
   $("startstop").className=run?"stop":"";
   $("startstop").disabled=gps.on;$("gpsbtn").classList.toggle("on",gps.on);$("gpsbtn").setAttribute("aria-pressed",gps.on);$("gpsbtn").disabled=run&&!gps.on;
@@ -334,22 +341,16 @@ function render(){
 }
 $("send").onclick=()=>{
   const g=groups(),ks=Object.keys(g);
-  if(!ks.length){$("err").textContent="Nincs mit elküldeni erre a napra.";return}
+  if(!ks.length){$("err").textContent="Nincs mit lezárni erre a napra.";return}
   const unk=day().filter(e=>e.club==="Nem tudom");
-  if(unk.length){$("err").textContent="A küldés előtt tisztázd a klubot ("+unk.map(e=>e.glider).join(", ")+"): a listában válaszd ki a „Melyik klub?” mezőnél.";return}
+  if(unk.length){$("err").textContent="A lezárás előtt tisztázd a klubot ("+unk.map(e=>e.glider).join(", ")+"): a listában válaszd ki a „Melyik klub?” mezőnél.";return}
+  $("err").textContent="";$("send").disabled=true;
   queueSheet($("date").value||today());
-  const s=S.settings;let tn=0,tm=0,tp=0;const pilots=[...new Set(day().map(e=>e.pilot).filter(Boolean))].join(", ");const nl=day().map((e,i)=>e.note?`${i+1}. ${e.glider}: ${e.note}`:"").filter(Boolean);const notes=nl.length?"\n\nMegjegyzések:\n"+nl.join("\n"):"";
-  const lines=ks.map(k=>{const x=g[k];tn+=x.n;tm+=x.m;tp+=x.p;return `${k}: ${x.n} vontatás, ${x.m} perc`});
-  const body=`Tow Log – vontatási összesítő\nNap: ${$("date").value}\nVontatópilóta: ${pilots||"-"}\n\n${lines.join("\n")}\n\nÖsszesen: ${tn} vontatás, ${tm} perc${notes}`;
-  const url=`mailto:${MAIL}?subject=${encodeURIComponent("Tow Log vontatás "+$("date").value)}&body=${encodeURIComponent(body)}`;
-$("mailtext").value=body;$("mailbox").hidden=false;
-try{const a=document.createElement("a");a.href=url;a.target="_blank";a.rel="noopener";document.body.appendChild(a);a.click();a.remove()}catch(e){}
 };
 
 $("date").value=today();
 fillSettings();fillTow();showPilot();if(S.timer){$("glider").value=S.timer.glider||"";$("payer").value=S.timer.payer||"";$("note").value=S.timer.note||"";if(S.timer.club)$("club").value=S.timer.club}
 render();
-$("copy").onclick=()=>{const t=$("mailtext");t.select();try{navigator.clipboard.writeText(t.value)}catch(e){try{document.execCommand("copy")}catch(e2){}}};
 setInterval(tick,1000);
 $("glider").oninput=markNeed;
 $("payer").oninput=markNeed;
