@@ -103,7 +103,7 @@ button:disabled{background:#a9aca8!important;color:#eceee9!important;cursor:not-
 </head>
 <body>
 <main>
-  <p class="sig">Tow Log by Adam Fulop (LHDK)<i>v47</i></p>
+  <p class="sig">Tow Log by Adam Fulop (LHDK)<i>v48</i></p>
 
 <div class="panel">
   <div class="row once"><div><label for="pilot">Vontatópilóta</label><select id="pilot" aria-required="true"><option value="">Válassz…</option><option>Balasi László</option><option>Boskovitz Ábel</option><option>Donka Attila</option><option>Erdősi Béla</option><option>Fülöp Ádám</option><option>Kovács Péter</option><option>Laczkó Balázs</option><option>Szenes Gábor</option><option>Szíj Bálint</option><option>Szilágyi Tibor</option><option>Valastyán Máté</option><option>Veigli Szabolcs</option><option>Werner Miklós</option></select></div>
@@ -136,6 +136,7 @@ button:disabled{background:#a9aca8!important;color:#eceee9!important;cursor:not-
 <h2>Összesítés</h2>
 <div class="panel" id="summary"></div>
 <button id="send">Összesítés küldése emailben</button>
+<p class="hint" id="sheetmsg" role="status"></p>
 <p class="hint">Megnyílik az email alkalmazásod a kész szöveggel, neked csak a Küldés gombot kell megnyomnod.</p>
 <div id="mailbox" class="panel" hidden style="margin-top:10px"><label for="mailtext" style="margin-top:0">Ha nem nyílt meg az email, másold ki a szöveget</label><textarea id="mailtext" readonly></textarea><button class="alt" id="copy">Szöveg másolása</button></div>
 
@@ -223,6 +224,23 @@ function startLoop(){if(!looping&&S.timer&&!calm){looping=true;requestAnimationF
 
 function fillTow(){const cur=$("tow").value;$("tow").innerHTML=tows().map(t=>`<option>${esc(t.name)}</option>`).join("");if(cur)$("tow").value=cur;if(S.timer)$("tow").value=S.timer.tow}
 const MAIL="themiddleF@gmail.com";
+const SHEET_URL="",SHEET_TOKEN="F8v5XNDWGM1Wk3fmPBHefWTh"; // a Google Apps Script webcíme kerül ide (lásd vontatonaplo-drive.gs)
+function sheetMsg(t){const m=$("sheetmsg");if(m)m.textContent=t}
+function sheetPayload(date){return{token:SHEET_TOKEN,date,entries:S.entries.filter(e=>e.date===date).map(e=>({payer:e.payer||"",tow:e.tow||"",minutes:e.minutes,price:e.price||0,pilot:e.pilot||"",club:e.club||"",time:e.time||"",glider:e.glider||"",note:e.note||""}))}}
+let flushing=false;
+async function flushOutbox(){
+  if(!SHEET_URL||!S.outbox||flushing)return;flushing=true;
+  try{for(const d of Object.keys(S.outbox)){
+    try{
+      const r=await fetch(SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(S.outbox[d])});
+      const j=await r.json();
+      if(j&&j.ok){delete S.outbox[d];save();sheetMsg("Google Táblázatba mentve ✓")}
+      else sheetMsg("A táblázatba mentés nem sikerült, később újrapróbálom.");
+    }catch(e){sheetMsg("Nincs kapcsolat: a táblázatba mentés később megtörténik.")}
+  }}finally{flushing=false}
+}
+function queueSheet(date){if(!SHEET_URL)return;S.outbox=S.outbox||{};S.outbox[date]=sheetPayload(date);save();sheetMsg("Táblázatba küldés…");flushOutbox()}
+window.addEventListener("online",flushOutbox);setTimeout(flushOutbox,1500);
 function fillSettings(){const s=S.settings;$("s-fee").value=s.fee;$("s-tows").value=s.tows}
 
 function markNeed(){["glider","club","payer"].forEach(id=>{const e=$(id);e.classList.toggle("need",!e.value.trim())});
@@ -308,6 +326,7 @@ function render(){
 $("send").onclick=()=>{
   const g=groups(),ks=Object.keys(g);
   if(!ks.length){$("err").textContent="Nincs mit elküldeni erre a napra.";return}
+  queueSheet($("date").value||today());
   const s=S.settings;let tn=0,tm=0,tp=0;const pilots=[...new Set(day().map(e=>e.pilot).filter(Boolean))].join(", ");const nl=day().map((e,i)=>e.note?`${i+1}. ${e.glider}: ${e.note}`:"").filter(Boolean);const notes=nl.length?"\n\nMegjegyzések:\n"+nl.join("\n"):"";
   const lines=ks.map(k=>{const x=g[k];tn+=x.n;tm+=x.m;tp+=x.p;return `${k}: ${x.n} vontatás, ${x.m} perc`});
   const body=`Tow Log – vontatási összesítő\nNap: ${$("date").value}\nVontatópilóta: ${pilots||"-"}\n\n${lines.join("\n")}\n\nÖsszesen: ${tn} vontatás, ${tm} perc${notes}`;
