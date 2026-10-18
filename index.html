@@ -29,6 +29,8 @@ button.stop{background:#c8102e;color:#fff}
 .item:last-child{border-bottom:0}
 .item b{font-family:system-ui,sans-serif}
 .item small{color:var(--muted);font-family:system-ui,sans-serif}
+.fixclub{font:700 .85rem system-ui,sans-serif;padding:4px 6px;border:2px solid #c8102e;border-radius:8px;background:var(--surface);color:var(--ink);animation:blinkt 1s ease-in-out infinite;width:auto;max-width:9.5em}
+@media (prefers-reduced-motion:reduce){.fixclub{animation:none}}
 .del{width:auto;margin:0;padding:6px 8px;font-size:.85rem;background:transparent;color:var(--sock);border:1px solid var(--line)}
 .acts{display:flex;gap:4px;align-items:center;flex-shrink:0}
 .adj{width:auto;margin:0;padding:8px 10px;font-size:.95rem;background:transparent;color:var(--ink);border:1px solid var(--line)}
@@ -104,7 +106,7 @@ button:disabled{background:#a9aca8!important;color:#eceee9!important;cursor:not-
 </head>
 <body>
 <main>
-  <p class="sig">Tow Log by Adam Fulop (LHDK)<i>v49</i></p>
+  <p class="sig">Tow Log by Adam Fulop (LHDK)<i>v50</i></p>
 
 <div class="panel">
   <div class="row once"><div><label for="pilot">Vontatópilóta</label><select id="pilot" aria-required="true"><option value="">Válassz…</option><option>Balasi László</option><option>Boskovitz Ábel</option><option>Donka Attila</option><option>Erdősi Béla</option><option>Fülöp Ádám</option><option>Kovács Péter</option><option>Laczkó Balázs</option><option>Szenes Gábor</option><option>Szíj Bálint</option><option>Szilágyi Tibor</option><option>Valastyán Máté</option><option>Veigli Szabolcs</option><option>Werner Miklós</option></select></div>
@@ -154,10 +156,10 @@ button:disabled{background:#a9aca8!important;color:#eceee9!important;cursor:not-
 <script>
 const KEY="vontatonaplo-v1";
 var gps={on:false};
-const def={settings:{club:"",pilot:"",mail:"",fee:0,tows:"HA-FBL;Malév=2500,Opitz=2700\nOM-DJS;2800\nHA-TUS;2500\nHA-SEP;2650\nHA-MJC;0"},entries:[],pilots:{},timer:null};
+const def={settings:{club:"",pilot:"",mail:"",fee:0,tows:"HA-FBL;Malév=2500,Opitz=2700,Idegen=2700\nOM-DJS;2800\nHA-TUS;2500\nHA-SEP;2650\nHA-MJC;0"},entries:[],pilots:{},timer:null};
 let S=def;
 try{const r=localStorage.getItem(KEY);if(r)S=Object.assign({},def,JSON.parse(r))}catch(e){}
-if(S.settings.tows==="HA-FBL;Malév=2600,Opitz=2750\nOM-DJS;2800\nHA-TUS;0\nHA-SEP;0\nHA-MJC;0"||/^HA-FBL;0\nOM-DJS;0/.test(S.settings.tows)||/^HA-VON1/.test(S.settings.tows))S.settings.tows=def.settings.tows;
+if(S.settings.tows==="HA-FBL;Malév=2500,Opitz=2700\nOM-DJS;2800\nHA-TUS;2500\nHA-SEP;2650\nHA-MJC;0"||S.settings.tows==="HA-FBL;Malév=2600,Opitz=2750\nOM-DJS;2800\nHA-TUS;0\nHA-SEP;0\nHA-MJC;0"||/^HA-FBL;0\nOM-DJS;0/.test(S.settings.tows)||/^HA-VON1/.test(S.settings.tows))S.settings.tows=def.settings.tows;
 S.pilots=S.pilots||{};
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const $=id=>document.getElementById(id);
@@ -316,7 +318,13 @@ function render(){
   $("gpsinfo").hidden=!gps.on;
   $("tow").disabled=run;
   const L=day();
-  $("list").innerHTML=L.length?L.map((e,i)=>`<div class="item"><div><b class="no">${i+1}.</b> <b>${esc(e.glider)}</b> ${e.club?'<small class="nw">('+esc(e.club)+')</small>':""}<br><small>${esc(e.payer||"nincs név")} · <b class="min">${e.minutes} perc</b>${e.time?' <span class="nw">('+CK+esc(e.time)+')</span>':""}${e.edited?" · javítva":""}</small>${e.note?'<br><small class="nt">'+esc(e.note)+'</small>':""}</div><div class="acts"><button class="adj" data-id="${e.id}" data-d="-1" aria-label="1 perccel kevesebb">−1</button><button class="adj" data-id="${e.id}" data-d="1" aria-label="1 perccel több">+1</button><button class="del" data-id="${e.id}" aria-label="Törlés">Töröl</button></div></div>`).join(""):'<div class="empty">Erre a napra még nincs vontatás.</div>';
+  $("list").innerHTML=L.length?L.map((e,i)=>`<div class="item"><div><b class="no">${i+1}.</b> <b>${esc(e.glider)}</b> ${e.club==="Nem tudom"?'<select class="fixclub" data-id="'+e.id+'" aria-label="Klub tisztázása"><option value="">Melyik klub?</option><option>Malév</option><option>Opitz</option><option>Idegen</option></select>':e.club?'<small class="nw">('+esc(e.club)+')</small>':""}<br><small>${esc(e.payer||"nincs név")} · <b class="min">${e.minutes} perc</b>${e.time?' <span class="nw">('+CK+esc(e.time)+')</span>':""}${e.edited?" · javítva":""}</small>${e.note?'<br><small class="nt">'+esc(e.note)+'</small>':""}</div><div class="acts"><button class="adj" data-id="${e.id}" data-d="-1" aria-label="1 perccel kevesebb">−1</button><button class="adj" data-id="${e.id}" data-d="1" aria-label="1 perccel több">+1</button><button class="del" data-id="${e.id}" aria-label="Törlés">Töröl</button></div></div>`).join(""):'<div class="empty">Erre a napra még nincs vontatás.</div>';
+  document.querySelectorAll(".fixclub").forEach(s=>s.onchange=()=>{
+    const e=S.entries.find(x=>x.id==s.dataset.id);if(!e||!s.value)return;
+    const t=tows().find(x=>x.name===e.tow)||{rates:{},def:0};
+    e.club=s.value;e.rate=rateFor(t,e.club);e.price=Number(S.settings.fee)+e.minutes*e.rate;
+    $("err").textContent="";save();render();
+  });
   document.querySelectorAll(".del").forEach(b=>b.onclick=()=>{S.entries=S.entries.filter(e=>e.id!=b.dataset.id);save();render()});
   document.querySelectorAll(".adj").forEach(b=>b.onclick=()=>adjust(b.dataset.id,Number(b.dataset.d)));
   const g=groups(),ks=Object.keys(g);
@@ -327,6 +335,8 @@ function render(){
 $("send").onclick=()=>{
   const g=groups(),ks=Object.keys(g);
   if(!ks.length){$("err").textContent="Nincs mit elküldeni erre a napra.";return}
+  const unk=day().filter(e=>e.club==="Nem tudom");
+  if(unk.length){$("err").textContent="A küldés előtt tisztázd a klubot ("+unk.map(e=>e.glider).join(", ")+"): a listában válaszd ki a „Melyik klub?” mezőnél.";return}
   queueSheet($("date").value||today());
   const s=S.settings;let tn=0,tm=0,tp=0;const pilots=[...new Set(day().map(e=>e.pilot).filter(Boolean))].join(", ");const nl=day().map((e,i)=>e.note?`${i+1}. ${e.glider}: ${e.note}`:"").filter(Boolean);const notes=nl.length?"\n\nMegjegyzések:\n"+nl.join("\n"):"";
   const lines=ks.map(k=>{const x=g[k];tn+=x.n;tm+=x.m;tp+=x.p;return `${k}: ${x.n} vontatás, ${x.m} perc`});
