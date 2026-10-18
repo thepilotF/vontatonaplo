@@ -1,0 +1,14 @@
+{
+  "name": "Tow Log",
+  "short_name": "Tow Log",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f1efe4",
+  "theme_color": "#2d6a3a",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"}
+  ]
+}

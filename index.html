@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2d6a3a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Tow Log">
 <title>Tow Log</title>
 <style>
 :root{--bg:#f1efe4;--surface:#fffffb;--ink:#1c2a1e;--muted:#5b695d;--line:#d6d3c2;--accent:#2d6a3a;--on-accent:#fff;--sock:#e2561a;--box:#e6f0e2;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -87,6 +94,13 @@ button:disabled{background:#a9aca8!important;color:#eceee9!important;cursor:not-
 #send{background:#1a6fd4;color:#fff;font-size:1.15rem;font-weight:800;padding:16px}
 #sheetmsg.ok{color:var(--accent);font:800 1rem system-ui,sans-serif;text-align:center;margin-top:10px}
 #sheetmsg.err{color:#c8102e;font-weight:700}
+.pinbox{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px}
+.pinbox[hidden]{display:none}
+.pincard{background:var(--surface);border:2px solid var(--accent);border-radius:14px;padding:20px;width:100%;max-width:340px;text-align:center}
+.pincard h2{margin:0 0 6px}
+#pin{font-size:1.6rem;text-align:center;letter-spacing:.3em;width:100%}
+#pinmsg{color:#c8102e;min-height:1.2em}
+#sheetmsg.pend{color:#b45f00;font-weight:700}
 .gpsinfo{margin:8px 0 0;text-align:center;font:600 .85rem system-ui,sans-serif;color:#1a6fd4}
 .gpsinfo[hidden]{display:none}
 :root[data-theme="dark"] .gpsinfo{color:#7fb3ff}
@@ -109,10 +123,10 @@ button:disabled{background:#a9aca8!important;color:#eceee9!important;cursor:not-
 </head>
 <body>
 <main>
-  <p class="sig">Tow Log by Adam Fulop (LHDK)<i>v53</i></p>
+  <p class="sig">Tow Log by Adam Fulop (LHDK)<i>v54</i></p>
 
 <div class="panel">
-  <div class="row once"><div><label for="pilot">Vontatópilóta</label><select id="pilot" aria-required="true"><option value="">Válassz…</option><option>Balasi László</option><option>Boskovitz Ábel</option><option>Donka Attila</option><option>Erdősi Béla</option><option>Fülöp Ádám</option><option>Kovács Péter</option><option>Laczkó Balázs</option><option>Szenes Gábor</option><option>Szíj Bálint</option><option>Szilágyi Tibor</option><option>Valastyán Máté</option><option>Veigli Szabolcs</option><option>Werner Miklós</option></select></div>
+  <div class="row once"><div><label for="pilot">Vontatópilóta</label><select id="pilot" aria-required="true"><option value="">Válassz…</option></select></div>
   <div><label for="tow">Vontatógép</label><select id="tow"></select></div></div>
   <div class="tow-box">
   <div class="row">
@@ -147,20 +161,20 @@ button:disabled{background:#a9aca8!important;color:#eceee9!important;cursor:not-
 <details>
 <summary>Beállítások</summary>
 <div class="panel" style="margin-top:10px">
-  <label for="s-fee">Indítási díj (Ft / vontatás)</label><input id="s-fee" type="number" inputmode="numeric" min="0">
-  <label for="s-tows">Vontatógépek: soronként „rendszám;Klub=Ft/perc,Klub=Ft/perc” (vagy csak „rendszám;Ft/perc”, ha minden klubnak ugyanannyi)</label><textarea id="s-tows"></textarea>
-  <button id="save">Beállítások mentése</button>
+  <button id="refreshcfg" class="alt" type="button">Adatok frissítése a táblázatból</button>
+  <button id="changepin" class="alt" type="button">PIN-kód módosítása</button>
+  <p class="hint" id="cfgstatus"></p>
 </div>
 </details>
 </main>
+<div id="pinbox" class="pinbox" hidden><div class="pincard"><h2>Tow Log</h2><p>Add meg a klub PIN-kódját</p><input id="pin" type="password" inputmode="numeric" autocomplete="off" aria-label="PIN-kód"><p class="hint" id="pinmsg" role="alert"></p><button id="pinok" type="button">Belépés</button></div></div>
 
 <script>
 const KEY="vontatonaplo-v1";
 var gps={on:false};
-const def={settings:{club:"",pilot:"",mail:"",fee:0,tows:"HA-FBL;Malév=2500,Opitz=2700,Idegen=2700\nOM-DJS;2800\nHA-TUS;2500\nHA-SEP;2650\nHA-MJC;0"},entries:[],pilots:{},timer:null};
+const def={settings:{fee:0},cfg:null,outbox:{up:{},del:{}},saved:{},entries:[],pilots:{},timer:null};
 let S=def;
 try{const r=localStorage.getItem(KEY);if(r)S=Object.assign({},def,JSON.parse(r))}catch(e){}
-if(S.settings.tows==="HA-FBL;Malév=2500,Opitz=2700\nOM-DJS;2800\nHA-TUS;2500\nHA-SEP;2650\nHA-MJC;0"||S.settings.tows==="HA-FBL;Malév=2600,Opitz=2750\nOM-DJS;2800\nHA-TUS;0\nHA-SEP;0\nHA-MJC;0"||/^HA-FBL;0\nOM-DJS;0/.test(S.settings.tows)||/^HA-VON1/.test(S.settings.tows))S.settings.tows=def.settings.tows;
 S.pilots=S.pilots||{};
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const $=id=>document.getElementById(id);
@@ -169,7 +183,7 @@ const ft=n=>Math.round(n).toLocaleString("hu-HU")+" Ft";
 const hm=ts=>{const d=new Date(ts);return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")};
 const CK='<svg class="ck" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M6 3.2V6l2 1.3" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>';
 const today=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
-const tows=()=>S.settings.tows.split("\n").map(l=>l.split(";")).filter(a=>a[0].trim()).map(a=>{const rates={};let def=0;(a[1]||"").split(",").forEach(p=>{const kv=p.split("=");const v=Number(kv[kv.length-1].trim())||0;if(kv.length>1)rates[kv[0].trim()]=v;else if(p.trim())def=v});return{name:a[0].trim(),rates,def}});
+const tows=()=>{const m={},order=[];((S.cfg&&S.cfg.prices)||[]).forEach(p=>{if(!m[p.tow]){m[p.tow]={name:p.tow,rates:{},def:0};order.push(p.tow)}if(p.club==="*")m[p.tow].def=p.rate;else m[p.tow].rates[p.club]=p.rate});return order.map(n=>m[n])};
 const rateFor=(t,club)=>t.rates[club]!==undefined?t.rates[club]:t.def;
 const SND_START=[[880,.1],[1175,.18]],SND_STOP=[[1175,.12],[784,.3]];
 let AC=null;
@@ -227,31 +241,95 @@ function loop(){drawClock();if(S.timer&&!calm)requestAnimationFrame(loop);else l
 function startLoop(){if(!looping&&S.timer&&!calm){looping=true;requestAnimationFrame(loop)}}
 
 function fillTow(){const cur=$("tow").value;$("tow").innerHTML=tows().map(t=>`<option>${esc(t.name)}</option>`).join("");if(cur)$("tow").value=cur;if(S.timer)$("tow").value=S.timer.tow}
-const SHEET_URL="https://script.google.com/macros/s/AKfycbzVlCDMXDa9sjq_efUi5AtD9fqOKs4NhIKCj4VALPgq3Px5368g25u48rlc_J-3fN1u/exec",SHEET_TOKEN="F8v5XNDWGM1Wk3fmPBHefWTh"; // a Google Apps Script webcíme kerül ide (lásd vontatonaplo-drive.gs)
+const SHEET_URL="https://script.google.com/macros/s/AKfycbzVlCDMXDa9sjq_efUi5AtD9fqOKs4NhIKCj4VALPgq3Px5368g25u48rlc_J-3fN1u/exec";
+const PINKEY="vontatonaplo-pin";
+const getPin=()=>{try{return localStorage.getItem(PINKEY)||""}catch(e){return ""}};
+const setPin=v=>{try{if(v)localStorage.setItem(PINKEY,v);else localStorage.removeItem(PINKEY)}catch(e){}};
+const newId=()=>"t"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 function sheetMsg(t,kind){const m=$("sheetmsg");if(m){m.textContent=t;m.dataset.kind=kind||"";m.className="hint "+(kind||"")}}
-function sheetPayload(date){return{token:SHEET_TOKEN,date,entries:S.entries.filter(e=>e.date===date).map(e=>({payer:e.payer||"",tow:e.tow||"",minutes:e.minutes,pilot:e.pilot||"",club:e.club||"",time:e.time||"",glider:e.glider||"",note:e.note||""}))}}
-function dayClosed(d){return !!(S.saved&&S.saved[d]&&S.saved[d]===JSON.stringify(sheetPayload(d).entries)&&!(S.outbox&&S.outbox[d]))}
+function entryPayload(e){return{id:String(e.id),date:e.date,payer:e.payer||"",tow:e.tow||"",minutes:e.minutes,pilot:e.pilot||"",club:e.club||"",time:e.time||"",glider:e.glider||"",note:e.note||""}}
+function ensureOutbox(){if(!S.outbox||!S.outbox.up||!S.outbox.del)S.outbox={up:{},del:{}}}
+function pendingCount(){ensureOutbox();return Object.keys(S.outbox.up).length+Object.keys(S.outbox.del).length}
+function daySig(d){return JSON.stringify(S.entries.filter(e=>e.date===d).map(entryPayload))}
+function dayClosed(d){return !!(S.saved&&S.saved[d]&&S.saved[d]===daySig(d)&&!pendingCount())}
+function qUp(id){const e=S.entries.find(x=>x.id==id);if(!e)return;ensureOutbox();S.outbox.up[String(id)]=entryPayload(e);delete S.outbox.del[String(id)];save();flushOutbox()}
+function qDel(id){ensureOutbox();delete S.outbox.up[String(id)];S.outbox.del[String(id)]=1;save();flushOutbox()}
 function syncCloseBtn(){
   const b=$("send");if(!b)return;const d=$("date").value||today();const closed=dayClosed(d);
   b.disabled=closed;b.classList.toggle("done",closed);
   if(closed)sheetMsg("Az adatok mentése sikeresen megtörtént ✓","ok");
   else if($("sheetmsg").dataset.kind==="ok")sheetMsg("");
 }
-let flushing=false;
-async function flushOutbox(){
-  if(!SHEET_URL||!S.outbox||flushing)return;flushing=true;
-  try{for(const d of Object.keys(S.outbox)){
-    try{
-      const r=await fetch(SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(S.outbox[d])});
-      const txt=await r.text();let j=null;try{j=JSON.parse(txt)}catch(x){}
-      if(j&&j.ok){S.saved=S.saved||{};S.saved[d]=JSON.stringify(S.outbox[d].entries);delete S.outbox[d];save()}
-      else sheetMsg("A mentés nem sikerült ("+(j&&j.error?j.error:"HTTP "+r.status+", nem JSON válasz")+"), később újrapróbálom.","err");
-    }catch(e){sheetMsg("A mentés nem sikerült ("+(e&&e.message||"hálózati hiba")+"), később újrapróbálom.","err")}
-  }}finally{flushing=false;render()}
+function showPin(msg){const b=$("pinbox");b.hidden=false;$("pinmsg").textContent=msg||"";$("pin").value="";try{$("pin").focus()}catch(e){}}
+function hidePin(){$("pinbox").hidden=true}
+function handleErr(code){
+  if(code==="pin"){setPin("");showPin("Hibás PIN-kód.")}
+  else if(code==="locked"){setPin("");showPin("Túl sok hibás próbálkozás, próbáld újra 10 perc múlva.")}
+  else pendMsg(code)
 }
-function queueSheet(date){if(!SHEET_URL)return;S.outbox=S.outbox||{};S.outbox[date]=sheetPayload(date);save();sheetMsg("Mentés folyamatban…","");flushOutbox()}
-window.addEventListener("online",flushOutbox);setTimeout(flushOutbox,1500);
-function fillSettings(){const s=S.settings;$("s-fee").value=s.fee;$("s-tows").value=s.tows}
+function pendMsg(why){const n=pendingCount();if(n)sheetMsg("Mentésre vár: "+n+" tétel ("+why+"). Később automatikusan elmegy.","pend")}
+async function api(body){
+  const r=await fetch(SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(Object.assign({pin:getPin()},body))});
+  const t=await r.text();let j;try{j=JSON.parse(t)}catch(x){throw new Error("HTTP "+r.status+", nem JSON válasz")}
+  return j;
+}
+async function flushOnce(){
+  ensureOutbox();
+  const ups=Object.values(S.outbox.up),dels=Object.keys(S.outbox.del);
+  if(!ups.length&&!dels.length)return true;
+  if(!getPin()){showPin("");return false}
+  try{
+    const j=await api({op:"sync",upserts:ups,deletes:dels});
+    if(j.ok){
+      ups.forEach(u=>{const cur=S.outbox.up[u.id];if(cur&&JSON.stringify(cur)===JSON.stringify(u))delete S.outbox.up[u.id]});
+      dels.forEach(i=>{delete S.outbox.del[i]});save();
+      if(j.skipped>0){sheetMsg("Egy tétel adata érvénytelen, ellenőrizd a klubot és a vontatógépet.","err");return false}
+      if($("sheetmsg").dataset.kind==="pend")sheetMsg("");
+      return !pendingCount();
+    }
+    handleErr(j.error);return false;
+  }catch(e){pendMsg(e&&e.message||"hálózati hiba");return false}
+}
+let flushP=null,flushAgain=false;
+function flushOutbox(){
+  if(!SHEET_URL)return Promise.resolve(false);
+  if(flushP){flushAgain=true;return flushP}
+  flushP=(async()=>{let ok=true;do{flushAgain=false;ok=await flushOnce()}while(flushAgain);return ok})().finally(()=>{flushP=null;render()});
+  return flushP;
+}
+async function loadConfig(){
+  if(!getPin()){showPin("");return false}
+  try{
+    const j=await api({op:"config"});
+    if(j.ok){S.cfg=j.config;save();fillPilots();fillTow();hidePin();render();$("cfgstatus").textContent="Frissítve: "+new Date().toLocaleString("hu-HU");return true}
+    handleErr(j.error);
+  }catch(e){
+    $("cfgstatus").textContent="Nincs kapcsolat, a korábban letöltött lista van használatban.";
+    if(!S.cfg)sheetMsg("Nincs kapcsolat. Az első indításhoz internet kell.","err");
+  }
+  return false;
+}
+function fillPilots(){
+  const sel=$("pilot"),cur=S.pilots[$("date").value]||sel.value;
+  const names=((S.cfg&&S.cfg.pilots)||[]).slice().sort((a,b)=>a.localeCompare(b,"hu"));
+  sel.innerHTML='<option value="">Válassz…</option>'+names.map(n=>`<option>${esc(n)}</option>`).join("");
+  if(cur&&!names.includes(cur))sel.insertAdjacentHTML("beforeend",`<option>${esc(cur)}</option>`);
+  sel.value=cur||"";
+}
+$("pinok").onclick=async()=>{
+  const v=$("pin").value.trim();if(!v)return;setPin(v);$("pinmsg").textContent="Ellenőrzés…";
+  const ok=await loadConfig();if(!ok&&getPin())$("pinmsg").textContent="Nincs kapcsolat, próbáld újra.";
+};
+$("pin").addEventListener("keydown",e=>{if(e.key==="Enter")$("pinok").click()});
+$("refreshcfg").onclick=()=>{$("cfgstatus").textContent="Frissítés…";loadConfig()};
+$("changepin").onclick=()=>{setPin("");showPin("Add meg az új PIN-kódot.")};
+window.addEventListener("online",()=>{flushOutbox();loadConfig()});
+setTimeout(()=>{flushOutbox();loadConfig()},800);
+
+// Offline működés: service worker (csak http/https oldalon, pl. GitHub Pages)
+if("serviceWorker" in navigator&&/^https?:$/.test(location.protocol)){
+  window.addEventListener("load",()=>{try{navigator.serviceWorker.register("sw.js").catch(()=>{})}catch(e){}});
+}
 
 function markNeed(){["glider","club","payer"].forEach(id=>{const e=$(id);e.classList.toggle("need",!e.value.trim())});
   const m=$("err");
@@ -272,8 +350,8 @@ function addEntry(minutes,o){
   const glider=$("glider").value.trim().toUpperCase();
   if(!minutes||minutes<1){$("err").textContent="A vontatás legalább 1 perc.";return false}
   const t=tows().find(x=>x.name===$("tow").value)||{name:$("tow").value,rates:{},def:0};
-  const club=$("club").value;S.entries.push({id:Date.now(),date,time:hm(o?o.start:S.timer?S.timer.start:Date.now()),tow:t.name,glider,club,payer:$("payer").value.trim(),note:$("note").value.trim(),pilot:S.pilots[date],rate:rateFor(t,club),minutes,price:Number(S.settings.fee)+minutes*rateFor(t,club)});
-  S.timer=null;save();$("err").textContent="";$("glider").value="";$("payer").value="";$("note").value="";$("club").value="";$("min").value="";render();return true;
+  const club=$("club").value;S.entries.push({id:newId(),date,time:hm(o?o.start:S.timer?S.timer.start:Date.now()),tow:t.name,glider,club,payer:$("payer").value.trim(),note:$("note").value.trim(),pilot:S.pilots[date],rate:rateFor(t,club),minutes,price:Number(S.settings.fee)+minutes*rateFor(t,club)});
+  S.timer=null;save();qUp(S.entries[S.entries.length-1].id);$("err").textContent="";$("glider").value="";$("payer").value="";$("note").value="";$("club").value="";$("min").value="";render();return true;
 }
 function tick(){
   drawClock();startLoop();markNeed();completePending();
@@ -288,7 +366,6 @@ $("startstop").onclick=()=>{
   if(!addEntry(mins))return;beep(SND_STOP);
 };
 $("addman").onclick=()=>addEntry(parseInt($("min").value,10));
-$("save").onclick=()=>{S.settings={fee:Number($("s-fee").value)||0,tows:$("s-tows").value};save();fillSettings();fillTow();render()};
 $("date").onchange=()=>{showPilot();render()};
 $("pilot").onchange=()=>{S.pilots[$("date").value]=$("pilot").value.trim();save()};
 function showPilot(){$("pilot").value=S.pilots[$("date").value]||""}
@@ -303,7 +380,7 @@ function adjust(id,d){
   const e=S.entries.find(x=>x.id==id);if(!e)return;
   const m=e.minutes+d;if(m<1)return;
   const r=e.rate!==undefined?e.rate:rateFor(tows().find(t=>t.name===e.tow)||{rates:{},def:0},e.club);
-  e.minutes=m;e.price+=d*r;e.edited=true;save();render();
+  e.minutes=m;e.price+=d*r;e.edited=true;save();qUp(id);render();
 }
 function fillSuggest(){
   const d=day().slice().reverse();
@@ -313,7 +390,7 @@ function fillSuggest(){
     box.querySelectorAll("button").forEach(b=>b.onclick=()=>{
       const v=b.dataset.v;$(k).value=v;
       if(k==="glider"){const last=d.find(e=>(e.glider||"").trim()===v);
-        if(last){if(last.club)$("club").value=last.club}}
+        if(last){if(last.club)$("club").value=last.club}else{const g=((S.cfg&&S.cfg.gliders)||[]).find(x=>x.reg===v);if(g&&g.club)$("club").value=g.club}}
       markNeed();fillSuggest()})};
   mk("ch-glider","glider");mk("ch-payer","payer");
 }
@@ -330,26 +407,30 @@ function render(){
     const e=S.entries.find(x=>x.id==s.dataset.id);if(!e||!s.value)return;
     const t=tows().find(x=>x.name===e.tow)||{rates:{},def:0};
     e.club=s.value;e.rate=rateFor(t,e.club);e.price=Number(S.settings.fee)+e.minutes*e.rate;
-    $("err").textContent="";save();render();
+    $("err").textContent="";save();qUp(e.id);render();
   });
-  document.querySelectorAll(".del").forEach(b=>b.onclick=()=>{S.entries=S.entries.filter(e=>e.id!=b.dataset.id);save();render()});
+  document.querySelectorAll(".del").forEach(b=>b.onclick=()=>{qDel(b.dataset.id);S.entries=S.entries.filter(e=>e.id!=b.dataset.id);save();render()});
   document.querySelectorAll(".adj").forEach(b=>b.onclick=()=>adjust(b.dataset.id,Number(b.dataset.d)));
   const g=groups(),ks=Object.keys(g);
   let tn=0,tm=0,tp=0;
   $("summary").innerHTML=ks.length?ks.map(k=>{const x=g[k];tn+=x.n;tm+=x.m;tp+=x.p;return `<div class="sum"><span>${esc(k)}<br><small class="hint">${x.n} vontatás</small></span><b class="r">${x.m} perc<br><small class="hint">${ft(x.p)}</small></b></div>`}).join("")+`<div class="sum total"><span>Összesen (${tn} vontatás)</span><span class="r"><b>${tm} perc</b><br><small class="hint">${ft(tp)}</small></span></div>`:'<div class="empty">Nincs mit összesíteni.</div>';
   tick();
 }
-$("send").onclick=()=>{
+$("send").onclick=async()=>{
   const g=groups(),ks=Object.keys(g);
   if(!ks.length){$("err").textContent="Nincs mit lezárni erre a napra.";return}
   const unk=day().filter(e=>e.club==="Nem tudom");
   if(unk.length){$("err").textContent="A lezárás előtt tisztázd a klubot ("+unk.map(e=>e.glider).join(", ")+"): a listában válaszd ki a „Melyik klub?” mezőnél.";return}
-  $("err").textContent="";$("send").disabled=true;
-  queueSheet($("date").value||today());
+  $("err").textContent="";$("send").disabled=true;sheetMsg("Mentés folyamatban…","");
+  const d=$("date").value||today();
+  ensureOutbox();day().forEach(e=>{S.outbox.up[String(e.id)]=entryPayload(e)});save();
+  const ok=await flushOutbox();
+  if(ok&&!pendingCount()){S.saved=S.saved||{};S.saved[d]=daySig(d);save()}
+  render();
 };
 
 $("date").value=today();
-fillSettings();fillTow();showPilot();if(S.timer){$("glider").value=S.timer.glider||"";$("payer").value=S.timer.payer||"";$("note").value=S.timer.note||"";if(S.timer.club)$("club").value=S.timer.club}
+fillPilots();fillTow();showPilot();if(S.timer){$("glider").value=S.timer.glider||"";$("payer").value=S.timer.payer||"";$("note").value=S.timer.note||"";if(S.timer.club)$("club").value=S.timer.club}
 render();
 setInterval(tick,1000);
 $("glider").oninput=markNeed;
@@ -365,11 +446,11 @@ if(window.ResizeObserver)new ResizeObserver(buildRing).observe($("clock"));
 $("glider").addEventListener("input",()=>fillSuggest());$("payer").addEventListener("input",()=>fillSuggest());
 
 // Legördülő javaslat-buborék a mai napon már beírt rendszámokból / nevekből
-function sugList(k){const d=day().slice().reverse();return [...new Set(d.map(e=>(e[k]||"").trim()).filter(Boolean))]}
+function sugList(k){const d=day().slice().reverse();const l=[...new Set(d.map(e=>(e[k]||"").trim()).filter(Boolean))];if(k==="glider")((S.cfg&&S.cfg.gliders)||[]).forEach(g=>{if(!l.includes(g.reg))l.push(g.reg)});return l}
 function pickSug(k,v){
   $(k).value=v;
   if(k==="glider"){const last=day().slice().reverse().find(e=>(e.glider||"").trim()===v);
-    if(last){if(last.club)$("club").value=last.club}}
+    if(last){if(last.club)$("club").value=last.club}else{const g=((S.cfg&&S.cfg.gliders)||[]).find(x=>x.reg===v);if(g&&g.club)$("club").value=g.club}}
   markNeed();fillSuggest();
 }
 ["glider","payer"].forEach(k=>{
