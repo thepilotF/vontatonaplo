@@ -106,7 +106,7 @@ button:disabled{background:#a9aca8!important;color:#eceee9!important;cursor:not-
 </head>
 <body>
 <main>
-  <p class="sig">Tow Log by Adam Fulop (LHDK)<i>v50</i></p>
+  <p class="sig">Tow Log by Adam Fulop (LHDK)<i>v51</i></p>
 
 <div class="panel">
   <div class="row once"><div><label for="pilot">Vontatópilóta</label><select id="pilot" aria-required="true"><option value="">Válassz…</option><option>Balasi László</option><option>Boskovitz Ábel</option><option>Donka Attila</option><option>Erdősi Béla</option><option>Fülöp Ádám</option><option>Kovács Péter</option><option>Laczkó Balázs</option><option>Szenes Gábor</option><option>Szíj Bálint</option><option>Szilágyi Tibor</option><option>Valastyán Máté</option><option>Veigli Szabolcs</option><option>Werner Miklós</option></select></div>
@@ -227,7 +227,7 @@ function startLoop(){if(!looping&&S.timer&&!calm){looping=true;requestAnimationF
 
 function fillTow(){const cur=$("tow").value;$("tow").innerHTML=tows().map(t=>`<option>${esc(t.name)}</option>`).join("");if(cur)$("tow").value=cur;if(S.timer)$("tow").value=S.timer.tow}
 const MAIL="themiddleF@gmail.com";
-const SHEET_URL="",SHEET_TOKEN="F8v5XNDWGM1Wk3fmPBHefWTh"; // a Google Apps Script webcíme kerül ide (lásd vontatonaplo-drive.gs)
+const SHEET_URL="https://script.google.com/macros/s/AKfycbzVlCDMXDa9sjq_efUi5AtD9fqOKs4NhIKCj4VALPgq3Px5368g25u48rlc_J-3fN1u/exec",SHEET_TOKEN="F8v5XNDWGM1Wk3fmPBHefWTh"; // a Google Apps Script webcíme kerül ide (lásd vontatonaplo-drive.gs)
 function sheetMsg(t){const m=$("sheetmsg");if(m)m.textContent=t}
 function sheetPayload(date){return{token:SHEET_TOKEN,date,entries:S.entries.filter(e=>e.date===date).map(e=>({payer:e.payer||"",tow:e.tow||"",minutes:e.minutes,pilot:e.pilot||"",club:e.club||"",time:e.time||"",glider:e.glider||"",note:e.note||""}))}}
 let flushing=false;
