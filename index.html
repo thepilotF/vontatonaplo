@@ -123,7 +123,7 @@ button:disabled{background:#a9aca8!important;color:#eceee9!important;cursor:not-
 </head>
 <body>
 <main>
-  <p class="sig">Tow Log by Adam Fulop (LHDK)<i>v55</i></p>
+  <p class="sig">Tow Log by Adam Fulop (LHDK)<i>v56</i></p>
 
 <div class="panel">
   <div class="row once"><div><label for="pilot">Vontatópilóta</label><select id="pilot" aria-required="true"><option value="">Válassz…</option></select></div>
@@ -157,6 +157,16 @@ button:disabled{background:#a9aca8!important;color:#eceee9!important;cursor:not-
 <div class="panel" id="summary"></div>
 <button id="send">Nap lezárása, mentés</button>
 <p class="hint" id="sheetmsg" role="status"></p>
+
+<details id="hist">
+<summary>Korábbi napok megtekintése</summary>
+<div class="panel" style="margin-top:10px">
+  <label for="hdate" style="margin-top:0">Nap</label><input id="hdate" type="date">
+  <p class="hint" id="hnote"></p>
+  <div id="hlist"></div>
+  <div id="hsum"></div>
+</div>
+</details>
 
 <details>
 <summary>Beállítások</summary>
@@ -416,6 +426,32 @@ function render(){
   $("summary").innerHTML=ks.length?ks.map(k=>{const x=g[k];tn+=x.n;tm+=x.m;tp+=x.p;return `<div class="sum"><span>${esc(k)}<br><small class="hint">${x.n} vontatás</small></span><b class="r">${x.m} perc<br><small class="hint">${ft(x.p)}</small></b></div>`}).join("")+`<div class="sum total"><span>Összesen (${tn} vontatás)</span><span class="r"><b>${tm} perc</b><br><small class="hint">${ft(tp)}</small></span></div>`:'<div class="empty">Nincs mit összesíteni.</div>';
   tick();
 }
+let histTok=0;
+function histRows(d){return S.entries.filter(e=>e.date===d).map(e=>({time:e.time||"",tow:e.tow||"",glider:e.glider||"",payer:e.payer||"",club:e.club||"",pilot:e.pilot||"",minutes:Number(e.minutes)||0,price:Number(e.price)||0,note:e.note||""}))}
+function renderHist(d,rows,local){
+  rows=rows.slice().sort((a,b)=>String(a.time||"99:99").localeCompare(String(b.time||"99:99")));
+  $("hnote").textContent=local?"Csak ezen az eszközön rögzített vontatások látszanak (a táblázat most nem érhető el).":"Csak megtekintés, itt nem módosítható.";
+  $("hlist").innerHTML=rows.length?rows.map((e,i)=>`<div class="item"><div><b class="no">${i+1}.</b> <b>${esc(e.glider)}</b> ${e.club?'<small class="nw">('+esc(e.club)+')</small>':""}<br><small>${esc(e.payer||"nincs név")} · <b class="min">${e.minutes} perc</b>${e.time?' <span class="nw">('+CK+esc(e.time)+')</span>':""}<br>${esc(e.tow)}${e.pilot?" · "+esc(e.pilot):""}</small>${e.note?'<br><small class="nt">'+esc(e.note)+'</small>':""}</div></div>`).join(""):'<div class="empty">Erre a napra nincs rögzített vontatás.</div>';
+  const g={};let tn=0,tm=0,tp=0;
+  rows.forEach(e=>{const k=e.club||"nincs klub";g[k]=g[k]||{n:0,m:0,p:0};g[k].n++;g[k].m+=e.minutes;g[k].p+=e.price;tn++;tm+=e.minutes;tp+=e.price});
+  $("hsum").innerHTML=rows.length?Object.keys(g).sort().map(k=>`<div class="sum"><span>${esc(k)}<br><small class="hint">${g[k].n} vontatás</small></span><b class="r">${g[k].m} perc<br><small class="hint">${ft(g[k].p)}</small></b></div>`).join("")+`<div class="sum total"><span>Összesen (${tn} vontatás)</span><span class="r"><b>${tm} perc</b><br><small class="hint">${ft(tp)}</small></span></div>`:"";
+}
+async function loadHist(){
+  const d=$("hdate").value,tok=++histTok;
+  if(!d){$("hlist").innerHTML="";$("hsum").innerHTML="";$("hnote").textContent="";return}
+  $("hnote").textContent="Betöltés…";
+  if(!getPin()){showPin("");renderHist(d,histRows(d),true);return}
+  try{
+    const j=await api({op:"day",date:d});
+    if(tok!==histTok)return;
+    if(j.ok&&Array.isArray(j.rows)){renderHist(d,j.rows,false);return}
+    if(j.error==="pin"||j.error==="locked"){handleErr(j.error);return}
+    renderHist(d,histRows(d),true);
+  }catch(e){if(tok===histTok)renderHist(d,histRows(d),true)}
+}
+$("hdate").max=today();
+$("hdate").onchange=loadHist;
+$("hist").addEventListener("toggle",()=>{if($("hist").open&&$("hdate").value)loadHist()});
 $("send").onclick=async()=>{
   const g=groups(),ks=Object.keys(g);
   if(!ks.length){$("err").textContent="Nincs mit lezárni erre a napra.";return}
