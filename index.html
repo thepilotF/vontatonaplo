@@ -24,6 +24,18 @@ h2{font-size:1.15rem;margin:28px 0 8px}
 label{display:block;font:600 .85rem system-ui,sans-serif;color:var(--muted);margin:10px 0 4px}
 input[type=date]{display:block;width:100%;max-width:100%;min-width:0;min-height:46px;-webkit-appearance:none;appearance:none;text-align:left}
 input[type=date]::-webkit-date-and-time-value{text-align:left;min-width:0}
+.calhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.calhead b{font-size:1.05rem;text-transform:capitalize}
+.calhead button{width:48px;min-height:44px;padding:0;margin:0;font-size:1.5rem;line-height:1;background:transparent;color:var(--ink);border:1px solid var(--line)}
+.calgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.calgrid .wd{font-size:.72rem;color:var(--muted);text-align:center;padding:2px 0}
+.calgrid button{aspect-ratio:1;min-height:0;padding:0;margin:0;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;font-size:.95rem;line-height:1.1;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.calgrid button small{font-size:.62rem;font-weight:600;opacity:.85}
+.calgrid button.has{background:var(--box);border-color:var(--accent);font-weight:800}
+.calgrid button.today{outline:2px solid var(--sock);outline-offset:-2px}
+.calgrid button.pick{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.calgrid button:disabled{opacity:.4}
+.hday{display:block;margin:12px 0 4px}
 html{touch-action:manipulation;-webkit-text-size-adjust:100%}
 input,select,textarea{width:100%;font:1rem system-ui,sans-serif;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:11px}
 textarea{min-height:90px}
@@ -126,7 +138,7 @@ button:disabled{background:#a9aca8!important;color:#eceee9!important;cursor:not-
 </head>
 <body>
 <main>
-  <p class="sig">Tow Log by Adam Fulop (LHDK)<i>v58</i></p>
+  <p class="sig">Tow Log by Adam Fulop (LHDK)<i>v59</i></p>
 
 <div class="panel">
   <div class="row once"><div><label for="pilot">Vontatópilóta</label><select id="pilot" aria-required="true"><option value="">Válassz…</option></select></div>
@@ -164,8 +176,10 @@ button:disabled{background:#a9aca8!important;color:#eceee9!important;cursor:not-
 <details id="hist">
 <summary>Korábbi napok megtekintése</summary>
 <div class="panel" style="margin-top:10px">
-  <label for="hdate" style="margin-top:0">Nap</label><input id="hdate" type="date">
+  <div class="calhead"><button id="hprev" type="button" aria-label="Előző hónap">‹</button><b id="hmonth"></b><button id="hnext" type="button" aria-label="Következő hónap">›</button></div>
+  <div class="calgrid" id="hcal"></div>
   <p class="hint" id="hnote"></p>
+  <b id="hday" class="hday"></b>
   <div id="hlist"></div>
   <div id="hsum"></div>
 </div>
@@ -432,32 +446,76 @@ function render(){
   tick();
 }
 ["gesturestart","gesturechange","gestureend"].forEach(t=>document.addEventListener(t,e=>e.preventDefault()));
-let histTok=0;
-function histRows(d){return S.entries.filter(e=>e.date===d).map(e=>({time:e.time||"",tow:e.tow||"",glider:e.glider||"",payer:e.payer||"",club:e.club||"",pilot:e.pilot||"",minutes:Number(e.minutes)||0,price:Number(e.price)||0,note:e.note||""}))}
+const MN=["január","február","március","április","május","június","július","augusztus","szeptember","október","november","december"];
+const p2=n=>(n<10?"0":"")+n;
+const histMap=e=>({date:e.date,time:e.time||"",tow:e.tow||"",glider:e.glider||"",payer:e.payer||"",club:e.club||"",pilot:e.pilot||"",minutes:Number(e.minutes)||0,price:Number(e.price)||0,note:e.note||""});
+function histLocal(k){return S.entries.filter(e=>String(e.date).slice(0,k.length)===k).map(histMap)}
+let hist={y:+today().slice(0,4),m:+today().slice(5,7)-1,sel:"",data:{},tok:0};
+const hkey=()=>hist.y+"-"+p2(hist.m+1);
 function renderHist(d,rows,local){
   rows=rows.slice().sort((a,b)=>String(a.time||"99:99").localeCompare(String(b.time||"99:99")));
   $("hnote").textContent=local?"Csak ezen az eszközön rögzített vontatások látszanak (a táblázat most nem érhető el).":"Csak megtekintés, itt nem módosítható.";
+  $("hday").textContent=d.replace(/-/g,". ")+". – "+rows.length+" vontatás";
   $("hlist").innerHTML=rows.length?rows.map((e,i)=>`<div class="item"><div><b class="no">${i+1}.</b> <b>${esc(e.glider)}</b> ${e.club?'<small class="nw">('+esc(e.club)+')</small>':""}<br><small>${esc(e.payer||"nincs név")} · <b class="min">${e.minutes} perc</b>${e.time?' <span class="nw">('+CK+esc(e.time)+')</span>':""}<br>${esc(e.tow)}${e.pilot?" · "+esc(e.pilot):""}</small>${e.note?'<br><small class="nt">'+esc(e.note)+'</small>':""}</div></div>`).join(""):'<div class="empty">Erre a napra nincs rögzített vontatás.</div>';
   const g={};let tn=0,tm=0,tp=0;
   rows.forEach(e=>{const k=e.club||"nincs klub";g[k]=g[k]||{n:0,m:0,p:0};g[k].n++;g[k].m+=e.minutes;g[k].p+=e.price;tn++;tm+=e.minutes;tp+=e.price});
   $("hsum").innerHTML=rows.length?Object.keys(g).sort().map(k=>`<div class="sum"><span>${esc(k)}<br><small class="hint">${g[k].n} vontatás</small></span><b class="r">${g[k].m} perc<br><small class="hint">${ft(g[k].p)}</small></b></div>`).join("")+`<div class="sum total"><span>Összesen (${tn} vontatás)</span><span class="r"><b>${tm} perc</b><br><small class="hint">${ft(tp)}</small></span></div>`:"";
 }
-async function loadHist(){
-  const d=$("hdate").value,tok=++histTok;
-  if(!d){$("hlist").innerHTML="";$("hsum").innerHTML="";$("hnote").textContent="";return}
-  $("hnote").textContent="Betöltés…";
-  if(!getPin()){showPin("");renderHist(d,histRows(d),true);return}
+function clearDay(){$("hday").textContent="";$("hlist").innerHTML="";$("hsum").innerHTML=""}
+function drawCal(){
+  const k=hkey(),D=hist.data[k]||{rows:histLocal(k)},cnt={},td=today();
+  D.rows.forEach(r=>{cnt[r.date]=(cnt[r.date]||0)+1});
+  const off=(new Date(hist.y,hist.m,1).getDay()+6)%7,dim=new Date(hist.y,hist.m+1,0).getDate();
+  let h=["H","K","Sze","Cs","P","Szo","V"].map(x=>`<div class="wd">${x}</div>`).join("");
+  for(let i=0;i<off;i++)h+="<span></span>";
+  for(let d=1;d<=dim;d++){
+    const ds=k+"-"+p2(d),c=cnt[ds]||0;
+    h+=`<button type="button" data-d="${ds}" class="${c?"has ":""}${ds===td?"today ":""}${ds===hist.sel?"pick":""}"${ds>td?" disabled":""} aria-label="${ds}${c?", "+c+" vontatás":""}">${d}${c?"<small>"+c+"</small>":""}</button>`;
+  }
+  $("hcal").innerHTML=h;
+  $("hmonth").textContent=hist.y+". "+MN[hist.m];
+  const nowK=td.slice(0,7);$("hnext").disabled=k>=nowK;
+  $("hcal").querySelectorAll("button[data-d]").forEach(b=>b.onclick=()=>selectDay(b.dataset.d));
+}
+async function legacyDay(d){
+  const tok=++hist.tok;
   try{
     const j=await api({op:"day",date:d});
-    if(tok!==histTok)return;
+    if(tok!==hist.tok)return;
     if(j.ok&&Array.isArray(j.rows)){renderHist(d,j.rows,false);return}
     if(j.error==="pin"||j.error==="locked"){handleErr(j.error);return}
-    renderHist(d,histRows(d),true);
-  }catch(e){if(tok===histTok)renderHist(d,histRows(d),true)}
+  }catch(e){if(tok!==hist.tok)return}
+  renderHist(d,histLocal(d),true);
 }
-$("hdate").max=today();
-$("hdate").onchange=loadHist;
-$("hist").addEventListener("toggle",()=>{if($("hist").open&&$("hdate").value)loadHist()});
+function selectDay(d){
+  hist.sel=d;drawCal();
+  const D=hist.data[hkey()];
+  if(D&&D.mode==="day")legacyDay(d);
+  else renderHist(d,(D?D.rows:histLocal(d.slice(0,7))).filter(r=>r.date===d),!D||D.local);
+}
+async function loadMonth(force){
+  const k=hkey(),tok=++hist.tok;
+  if(hist.sel.slice(0,7)!==k){hist.sel="";clearDay()}
+  if(!hist.data[k]||force)hist.data[k]={rows:histLocal(k),local:true,mode:"month"};
+  drawCal();
+  if(!hist.sel)$("hnote").textContent="";
+  if(!getPin()){showPin("");return}
+  if(!hist.sel)$("hnote").textContent="Betöltés…";
+  try{
+    const j=await api({op:"day",month:k});
+    if(tok!==hist.tok)return;
+    if(j.ok&&Array.isArray(j.rows))hist.data[k]={rows:j.rows,local:false,mode:"month"};
+    else if(j.error==="pin"||j.error==="locked"){handleErr(j.error);return}
+    else hist.data[k]={rows:histLocal(k),local:true,mode:j.error==="date"?"day":"month"};
+  }catch(e){if(tok!==hist.tok)return;hist.data[k]={rows:histLocal(k),local:true,mode:"month"}}
+  drawCal();
+  if(hist.sel)selectDay(hist.sel);
+  else $("hnote").textContent=hist.data[k].local&&hist.data[k].mode!=="day"?"Csak ezen az eszközön rögzített vontatások látszanak (a táblázat most nem érhető el).":"Koppints egy napra a vontatások megtekintéséhez.";
+}
+$("hprev").onclick=()=>{hist.m--;if(hist.m<0){hist.m=11;hist.y--}loadMonth(false)};
+$("hnext").onclick=()=>{hist.m++;if(hist.m>11){hist.m=0;hist.y++}loadMonth(false)};
+$("hist").addEventListener("toggle",()=>{if($("hist").open){hist.y=+today().slice(0,4);hist.m=+today().slice(5,7)-1;hist.sel="";clearDay();loadMonth(true)}});
+drawCal();
 $("send").onclick=async()=>{
   const g=groups(),ks=Object.keys(g);
   if(!ks.length){$("err").textContent="Nincs mit lezárni erre a napra.";return}
