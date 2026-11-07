@@ -54,9 +54,15 @@ button.stop{background:#c8102e;color:#fff}
 .fixclub{font:700 .85rem system-ui,sans-serif;padding:4px 6px;border:2px solid #c8102e;border-radius:8px;background:var(--surface);color:var(--ink);animation:blinkt 1s ease-in-out infinite;width:auto;max-width:9.5em}
 @media (prefers-reduced-motion:reduce){.fixclub{animation:none}}
 .del{width:auto;margin:0;padding:6px 8px;font-size:.85rem;background:transparent;color:var(--sock);border:1px solid var(--line)}
-.acts{display:flex;gap:4px;align-items:center;flex-shrink:0}
+.acts{display:grid;grid-template-columns:auto auto;gap:4px;align-items:center;flex-shrink:0}
 .adj{width:auto;margin:0;padding:8px 10px;font-size:.95rem;background:transparent;color:var(--ink);border:1px solid var(--line)}
 .item>div:first-child{min-width:0}
+.item.editing{display:block}
+.editbox label{margin:8px 0 3px}
+.editbox input,.editbox select{padding:10px;font-size:1rem}
+.editbox .eacts{display:flex;gap:8px;margin-top:12px}
+.editbox .eacts button{margin:0}
+.edt{width:auto;margin:0;padding:6px 8px;font-size:.85rem;background:transparent;color:var(--ink);border:1px solid var(--line)}
 .min{color:#c8102e;font-weight:700;font-size:1.05rem}
 .ck{width:.95em;height:.95em;vertical-align:-.12em;margin-right:.18em}
 .nw{white-space:nowrap}
@@ -138,7 +144,7 @@ button:disabled{background:#a9aca8!important;color:#eceee9!important;cursor:not-
 </head>
 <body>
 <main>
-  <p class="sig">Tow Log by Adam Fulop (LHDK)<i>v2.0</i></p>
+  <p class="sig">Tow Log by Adam Fulop (LHDK)<i>v2.1</i></p>
 
 <div class="panel">
   <div class="row once"><div><label for="pilot">Vontatópilóta</label><select id="pilot" aria-required="true"><option value="">Válassz…</option></select></div>
@@ -423,6 +429,29 @@ function fillSuggest(){
       markNeed();fillSuggest()})};
   mk("ch-glider","glider");mk("ch-payer","payer");
 }
+let editId=null,editDraft=null;
+function editorHtml(e,i){
+  const d=editDraft||{glider:e.glider||"",payer:e.payer||"",club:e.club||"",tow:e.tow||""};
+  const opt=(arr,cur)=>(arr.includes(cur)||!cur?arr:arr.concat([cur])).map(v=>`<option${v===cur?" selected":""}>${esc(v)}</option>`).join("");
+  const towNames=tows().map(t=>t.name);
+  return `<div class="item editing"><div class="editbox"><b class="no">${i+1}. vontatás szerkesztése</b>
+<label>Vontatmány lajstroma</label><input data-f="glider" value="${esc(d.glider)}" autocapitalize="characters" autocomplete="off">
+<label>Költségviselő</label><input data-f="payer" value="${esc(d.payer)}" autocomplete="off">
+<label>Klub</label><select data-f="club">${opt(["Malév","Opitz","Idegen","Nem tudom"],d.club)}</select>
+<label>Vontatógép</label><select data-f="tow">${opt(towNames,d.tow)}</select>
+<p class="hint" id="emsg" role="alert"></p>
+<div class="eacts"><button class="esave" type="button">Mentés</button><button class="alt ecancel" type="button">Mégse</button></div></div></div>`;
+}
+function saveEdit(){
+  const e=S.entries.find(x=>x.id==editId);if(!e){editId=null;return}
+  const d=editDraft||{};const glider=(d.glider||"").trim().toUpperCase(),payer=(d.payer||"").trim();
+  if(!glider||!payer){const m=document.getElementById("emsg");if(m)m.textContent="A lajstrom és a költségviselő nem lehet üres.";return}
+  const t=tows().find(x=>x.name===d.tow)||{name:d.tow,rates:{},def:0};
+  const rateChanged=d.tow!==e.tow||d.club!==e.club;
+  e.glider=glider;e.payer=payer;e.club=d.club;e.tow=d.tow;
+  if(rateChanged){e.rate=rateFor(t,e.club);e.price=Number(S.settings.fee)+e.minutes*e.rate}
+  e.edited=true;editId=null;editDraft=null;save();qUp(e.id);render();
+}
 function render(){
   fillSuggest();syncCloseBtn();const run=!!S.timer;
   $("startstop").textContent=run?"STOP":"START";
@@ -431,7 +460,7 @@ function render(){
   $("gpsinfo").hidden=!gps.on;
   $("tow").disabled=run;
   const L=day();
-  $("list").innerHTML=L.length?L.map((e,i)=>`<div class="item"><div><b class="no">${i+1}.</b> <b>${esc(e.glider)}</b> ${e.club==="Nem tudom"?'<select class="fixclub" data-id="'+e.id+'" aria-label="Klub tisztázása"><option value="">Melyik klub?</option><option>Malév</option><option>Opitz</option><option>Idegen</option></select>':e.club?'<small class="nw">('+esc(e.club)+')</small>':""}<br><small>${esc(e.payer||"nincs név")} · <b class="min">${e.minutes} perc</b>${e.time?' <span class="nw">('+CK+esc(e.time)+')</span>':""}${e.edited?" · javítva":""}</small>${e.note?'<br><small class="nt">'+esc(e.note)+'</small>':""}</div><div class="acts"><button class="adj" data-id="${e.id}" data-d="-1" aria-label="1 perccel kevesebb">−1</button><button class="adj" data-id="${e.id}" data-d="1" aria-label="1 perccel több">+1</button><button class="del" data-id="${e.id}" aria-label="Törlés">Töröl</button></div></div>`).join(""):'<div class="empty">Erre a napra még nincs vontatás.</div>';
+  $("list").innerHTML=L.length?L.map((e,i)=>e.id===editId?editorHtml(e,i):`<div class="item"><div><b class="no">${i+1}.</b> <b>${esc(e.glider)}</b> ${e.club==="Nem tudom"?'<select class="fixclub" data-id="'+e.id+'" aria-label="Klub tisztázása"><option value="">Melyik klub?</option><option>Malév</option><option>Opitz</option><option>Idegen</option></select>':e.club?'<small class="nw">('+esc(e.club)+')</small>':""}<br><small>${esc(e.payer||"nincs név")} · <b class="min">${e.minutes} perc</b>${e.time?' <span class="nw">('+CK+esc(e.time)+')</span>':""}${e.edited?" · javítva":""}</small>${e.note?'<br><small class="nt">'+esc(e.note)+'</small>':""}</div><div class="acts"><button class="adj" data-id="${e.id}" data-d="-1" aria-label="1 perccel kevesebb">−1</button><button class="adj" data-id="${e.id}" data-d="1" aria-label="1 perccel több">+1</button><button class="edt" data-id="${e.id}" aria-label="Szerkesztés">Szerk.</button><button class="del" data-id="${e.id}" aria-label="Törlés">Töröl</button></div></div>`).join(""):'<div class="empty">Erre a napra még nincs vontatás.</div>';
   document.querySelectorAll(".fixclub").forEach(s=>s.onchange=()=>{
     const e=S.entries.find(x=>x.id==s.dataset.id);if(!e||!s.value)return;
     const t=tows().find(x=>x.name===e.tow)||{rates:{},def:0};
@@ -440,6 +469,10 @@ function render(){
   });
   document.querySelectorAll(".del").forEach(b=>b.onclick=()=>{qDel(b.dataset.id);S.entries=S.entries.filter(e=>e.id!=b.dataset.id);save();render()});
   document.querySelectorAll(".adj").forEach(b=>b.onclick=()=>adjust(b.dataset.id,Number(b.dataset.d)));
+  document.querySelectorAll(".edt").forEach(b=>b.onclick=()=>{const e=S.entries.find(x=>x.id==b.dataset.id);if(!e)return;editId=e.id;editDraft={glider:e.glider||"",payer:e.payer||"",club:e.club||"",tow:e.tow||""};render()});
+  document.querySelectorAll(".editbox [data-f]").forEach(f=>{f.oninput=f.onchange=()=>{editDraft[f.dataset.f]=f.value}});
+  document.querySelectorAll(".esave").forEach(b=>b.onclick=saveEdit);
+  document.querySelectorAll(".ecancel").forEach(b=>b.onclick=()=>{editId=null;editDraft=null;render()});
   const g=groups(),ks=Object.keys(g);
   let tn=0,tm=0,tp=0;
   $("summary").innerHTML=ks.length?ks.map(k=>{const x=g[k];tn+=x.n;tm+=x.m;tp+=x.p;return `<div class="sum"><span>${esc(k)}<br><small class="hint">${x.n} vontatás</small></span><b class="r">${x.m} perc<br><small class="hint">${ft(x.p)}</small></b></div>`}).join("")+`<div class="sum total"><span>Összesen (${tn} vontatás)</span><span class="r"><b>${tm} perc</b><br><small class="hint">${ft(tp)}</small></span></div>`:'<div class="empty">Nincs mit összesíteni.</div>';
