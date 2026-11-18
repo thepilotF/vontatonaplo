@@ -36,6 +36,11 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;min-width:0}
 .calgrid button.pick{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
 .calgrid button:disabled{opacity:.4}
 .hday{display:block;margin:12px 0 4px}
+.loop{display:inline-block;position:relative;width:40px;height:40px;vertical-align:middle;margin-right:8px;border:1.5px dashed var(--line);border-radius:50%;animation:orbit 1.3s linear infinite}
+.loop svg{position:absolute;left:50%;top:-11px;width:22px;height:22px;margin-left:-11px;color:var(--sock)}
+@keyframes orbit{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.loop{animation-duration:3s}}
+.loading{display:flex;align-items:center}
 html{touch-action:manipulation;-webkit-text-size-adjust:100%}
 input,select,textarea{width:100%;font:1rem system-ui,sans-serif;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:11px}
 textarea{min-height:90px}
@@ -156,7 +161,7 @@ button:disabled{background:#a9aca8!important;color:#eceee9!important;cursor:not-
 </head>
 <body>
 <main>
-  <div class="topbar"><p class="sig">Tow Log by Adam Fulop (LHDK)<i>v2.2</i></p><button id="chkbtn" class="oval" type="button">Safety Checklist</button></div>
+  <div class="topbar"><p class="sig">Tow Log by Adam Fulop (LHDK)<i>v2.3</i></p><button id="chkbtn" class="oval" type="button">Safety Checklist</button></div>
 
 <div class="panel">
   <div class="row once"><div><label for="pilot">Vontatópilóta</label><select id="pilot" aria-required="true"><option value="">Válassz…</option></select></div>
@@ -510,6 +515,7 @@ function render(){
 ["gesturestart","gesturechange","gestureend"].forEach(t=>document.addEventListener(t,e=>e.preventDefault()));
 const MN=["január","február","március","április","május","június","július","augusztus","szeptember","október","november","december"];
 const p2=n=>(n<10?"0":"")+n;
+const LOADING='<span class="loading"><span class="loop" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 10.5h19.5c1 0 1.5.6 1.5 1.5s-.5 1.5-1.5 1.5H1zM9 12L14 1.5h3.2L14.5 12l2.7 10.5H14zM1 12l1.5-5H5l-1 5 1 5H2.5z"/></svg></span>Betöltés…</span>';
 const histMap=e=>({date:e.date,time:e.time||"",tow:e.tow||"",glider:e.glider||"",payer:e.payer||"",club:e.club||"",pilot:e.pilot||"",minutes:Number(e.minutes)||0,price:Number(e.price)||0,note:e.note||""});
 function histLocal(k){return S.entries.filter(e=>String(e.date).slice(0,k.length)===k).map(histMap)}
 let hist={y:+today().slice(0,4),m:+today().slice(5,7)-1,sel:"",data:{},tok:0};
@@ -540,7 +546,7 @@ function drawCal(){
   $("hcal").querySelectorAll("button[data-d]").forEach(b=>b.onclick=()=>selectDay(b.dataset.d));
 }
 async function legacyDay(d){
-  const tok=++hist.tok;
+  const tok=++hist.tok;$("hnote").innerHTML=LOADING;
   try{
     const j=await api({op:"day",date:d});
     if(tok!==hist.tok)return;
@@ -562,12 +568,12 @@ async function loadMonth(force){
   drawCal();
   if(!hist.sel)$("hnote").textContent="";
   if(!getPin()){showPin("");return}
-  if(!hist.sel)$("hnote").textContent="Betöltés…";
+  $("hnote").innerHTML=LOADING;
   try{
     const j=await api({op:"day",month:k});
     if(tok!==hist.tok)return;
     if(j.ok&&Array.isArray(j.rows))hist.data[k]={rows:j.rows,local:false,mode:"month"};
-    else if(j.error==="pin"||j.error==="locked"){handleErr(j.error);return}
+    else if(j.error==="pin"||j.error==="locked"){$("hnote").textContent="";handleErr(j.error);return}
     else hist.data[k]={rows:histLocal(k),local:true,mode:j.error==="date"?"day":"month"};
   }catch(e){if(tok!==hist.tok)return;hist.data[k]={rows:histLocal(k),local:true,mode:"month"}}
   drawCal();
